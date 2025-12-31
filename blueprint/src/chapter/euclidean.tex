@@ -1,0 +1,228 @@
+\chapter{The Euclidean Group}
+
+This chapter defines the Euclidean group $\Euc(2)$ and establishes its basic properties. The Euclidean group is the group of all distance-preserving transformations (isometries) of the plane.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Euclidean Plane}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Euclidean plane]
+    \label{def:euclidean_plane}
+    \lean{EuclideanPlane}
+    \leanok
+    The \emph{Euclidean plane} is the vector space $\R^2$ equipped with the standard inner product $\langle (x_1, y_1), (x_2, y_2) \rangle = x_1 x_2 + y_1 y_2$.
+
+    In Mathlib, this is \texttt{EuclideanSpace $\R$ (Fin 2)}.
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Orthogonal Group}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Orthogonal group]
+    \label{def:orthogonal_group}
+    \lean{OrthogonalGroup2}
+    \uses{def:euclidean_plane}
+    \notready
+    The \emph{orthogonal group} $\Orth(2)$ is the group of linear isometries of $\R^2$:
+    \[
+        \Orth(2) = \{ A \in \GL_2(\R) \mid A^T A = I \}.
+    \]
+
+    In Mathlib, elements are \texttt{EuclideanPlane $\simeq^{li}_\R$ EuclideanPlane} (linear isometry equivalences).
+\end{definition}
+
+\begin{definition}[Special orthogonal group]
+    \label{def:special_orthogonal}
+    \lean{SpecialOrthogonalGroup2}
+    \uses{def:orthogonal_group}
+    \notready
+    The \emph{special orthogonal group} $\SO(2)$ is the subgroup of $\Orth(2)$ consisting of matrices with determinant $+1$:
+    \[
+        \SO(2) = \{ A \in \Orth(2) \mid \det(A) = 1 \}.
+    \]
+    These are the \emph{rotations}.
+\end{definition}
+
+\begin{definition}[Rotation matrix]
+    \label{def:rotation_matrix}
+    \lean{rotationMatrix}
+    \uses{def:special_orthogonal}
+    \notready
+    For $\theta \in \R$, the \emph{rotation matrix} by angle $\theta$ is:
+    \[
+        R_\theta = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}.
+    \]
+\end{definition}
+
+\begin{definition}[Reflection matrix]
+    \label{def:reflection_matrix}
+    \lean{reflectionMatrix}
+    \uses{def:orthogonal_group}
+    \notready
+    The \emph{reflection} across the line at angle $\theta/2$ from the $x$-axis is:
+    \[
+        S_\theta = \begin{pmatrix} \cos\theta & \sin\theta \\ \sin\theta & -\cos\theta \end{pmatrix}.
+    \]
+\end{definition}
+
+\begin{lemma}[Rotation is in SO(2)]
+    \label{lem:rotation_in_SO2}
+    \lean{rotationMatrix_mem_SO2}
+    \uses{def:rotation_matrix, def:special_orthogonal}
+    \notready
+    For all $\theta$, $R_\theta \in \SO(2)$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    Direct computation: $R_\theta^T R_\theta = I$ and $\det(R_\theta) = \cos^2\theta + \sin^2\theta = 1$.
+\end{proof}
+
+\begin{lemma}[Reflection has determinant -1]
+    \label{lem:reflection_det}
+    \lean{reflectionMatrix_det}
+    \uses{def:reflection_matrix}
+    \notready
+    For all $\theta$, $\det(S_\theta) = -1$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    $\det(S_\theta) = -\cos^2\theta - \sin^2\theta = -1$.
+\end{proof}
+
+\begin{lemma}[SO(2) consists of rotations]
+    \label{lem:SO2_rotations}
+    \lean{SO2_eq_rotations}
+    \uses{def:special_orthogonal, def:rotation_matrix}
+    \notready
+    Every element of $\SO(2)$ is of the form $R_\theta$ for some $\theta \in [0, 2\pi)$.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:rotation_in_SO2}
+    \notready
+    If $A = \begin{pmatrix} a & b \\ c & d \end{pmatrix} \in \SO(2)$, then $A^T A = I$ gives $a^2 + c^2 = 1$, so $(a, c) = (\cos\theta, \sin\theta)$ for some $\theta$. Orthonormality of columns and $\det = 1$ force $(b, d) = (-\sin\theta, \cos\theta)$.
+\end{proof}
+
+\begin{lemma}[O(2) is rotations and reflections]
+    \label{lem:O2_structure}
+    \lean{O2_eq_rotations_union_reflections}
+    \uses{def:orthogonal_group, lem:SO2_rotations, def:reflection_matrix}
+    \notready
+    Every element of $\Orth(2)$ is either a rotation $R_\theta$ or a reflection $S_\theta$.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:reflection_det}
+    \notready
+    If $\det(A) = 1$, use Lemma~\ref{lem:SO2_rotations}. If $\det(A) = -1$, write $A = S_0 \cdot B$ where $B = S_0 A$ has $\det(B) = 1$, so $B = R_\phi$ and $A = S_0 R_\phi = S_\phi$.
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Euclidean Group as Semidirect Product}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Euclidean group]
+    \label{def:euclidean_group}
+    \lean{EuclideanGroup2}
+    \uses{def:euclidean_plane, def:orthogonal_group}
+    \notready
+    The \emph{Euclidean group} $\Euc(2)$ is the semidirect product
+    \[
+        \Euc(2) = \R^2 \sdp \Orth(2)
+    \]
+    where $\Orth(2)$ acts on $\R^2$ by matrix multiplication. An element $(v, A) \in \Euc(2)$ represents the affine isometry $x \mapsto Ax + v$.
+\end{definition}
+
+\begin{lemma}[Euclidean group multiplication]
+    \label{lem:euclidean_mul}
+    \lean{EuclideanGroup2.mul_def}
+    \uses{def:euclidean_group}
+    \notready
+    In $\Euc(2)$:
+    \[
+        (v_1, A_1) \cdot (v_2, A_2) = (v_1 + A_1 v_2, A_1 A_2).
+    \]
+\end{lemma}
+
+\begin{proof}
+    \notready
+    Follows from the semidirect product definition.
+\end{proof}
+
+\begin{lemma}[Euclidean group inverse]
+    \label{lem:euclidean_inv}
+    \lean{EuclideanGroup2.inv_def}
+    \uses{def:euclidean_group}
+    \notready
+    In $\Euc(2)$:
+    \[
+        (v, A)^{-1} = (-A^{-1}v, A^{-1}).
+    \]
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:euclidean_mul}
+    \notready
+    Verify $(v, A) \cdot (-A^{-1}v, A^{-1}) = (v - A A^{-1} v, I) = (0, I)$.
+\end{proof}
+
+\begin{definition}[Translation subgroup]
+    \label{def:translation_subgroup}
+    \lean{translationSubgroup}
+    \uses{def:euclidean_group}
+    \notready
+    The \emph{translation subgroup} $T \subset \Euc(2)$ consists of elements $(v, I)$ for $v \in \R^2$.
+\end{definition}
+
+\begin{lemma}[Translation subgroup is normal]
+    \label{lem:translation_normal}
+    \lean{translationSubgroup_normal}
+    \uses{def:translation_subgroup}
+    \notready
+    $T$ is a normal subgroup of $\Euc(2)$.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:euclidean_mul, lem:euclidean_inv}
+    \notready
+    For $(v, A) \in \Euc(2)$ and $(w, I) \in T$:
+    $(v, A)(w, I)(v, A)^{-1} = (v + Aw, A)(-A^{-1}v, A^{-1}) = (Aw, I) \in T$.
+\end{proof}
+
+\begin{lemma}[Quotient by translations]
+    \label{lem:euclidean_quotient}
+    \lean{EuclideanGroup2.quotient_translations}
+    \uses{def:translation_subgroup, lem:translation_normal, def:orthogonal_group}
+    \notready
+    $\Euc(2) / T \cong \Orth(2)$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    The projection $(v, A) \mapsto A$ is a surjective homomorphism with kernel $T$.
+\end{proof}
+
+\begin{definition}[Glide reflection]
+    \label{def:glide_reflection}
+    \lean{glideReflection}
+    \uses{def:euclidean_group, def:reflection_matrix}
+    \notready
+    A \emph{glide reflection} is an element $(v, S_\theta) \in \Euc(2)$ where $v$ is parallel to the reflection axis (i.e., $v$ is an eigenvector of $S_\theta$ with eigenvalue $+1$), and $v \neq 0$.
+\end{definition}
+
+\begin{lemma}[Glide reflection squared is translation]
+    \label{lem:glide_squared}
+    \lean{glideReflection_sq}
+    \uses{def:glide_reflection}
+    \notready
+    If $(v, S)$ is a glide reflection, then $(v, S)^2 = (2v, I)$ is a translation by $2v$.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:euclidean_mul}
+    \notready
+    $(v, S)^2 = (v + Sv, S^2) = (v + v, I) = (2v, I)$ since $Sv = v$ (as $v$ is along the reflection axis).
+\end{proof}

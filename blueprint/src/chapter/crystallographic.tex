@@ -1,0 +1,124 @@
+\chapter{Crystallographic Restriction}
+
+This chapter proves the crystallographic restriction theorem, which limits the possible rotation orders in lattice-preserving transformations.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Trace Argument}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{lemma}[Rotation trace formula]
+    \label{lem:rotation_trace}
+    \lean{rotationMatrix_trace}
+    \uses{def:rotation_matrix}
+    \notready
+    The trace of the rotation matrix $R_\theta$ is:
+    \[
+        \tr(R_\theta) = 2\cos\theta.
+    \]
+\end{lemma}
+
+\begin{proof}
+    \notready
+    $\tr(R_\theta) = \cos\theta + \cos\theta = 2\cos\theta$.
+\end{proof}
+
+\begin{lemma}[Trace is basis-independent]
+    \label{lem:trace_invariant}
+    \lean{Matrix.trace_conj}
+    \leanok
+    For any invertible matrix $P$, $\tr(PAP^{-1}) = \tr(A)$.
+
+    This is already in Mathlib.
+\end{lemma}
+
+\begin{lemma}[Integer matrix has integer trace]
+    \label{lem:integer_matrix_trace}
+    \lean{Matrix.trace_intCast}
+    \uses{lem:preserving_integer}
+    \notready
+    If $M \in \text{Mat}_{2 \times 2}(\Z)$, then $\tr(M) \in \Z$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    The trace is the sum of diagonal entries.
+\end{proof}
+
+\begin{theorem}[Crystallographic restriction theorem]
+    \label{thm:crystallographic_restriction}
+    \lean{crystallographic_restriction}
+    \uses{def:lattice, def:lattice_preserving, lem:rotation_trace, lem:trace_invariant, lem:integer_matrix_trace, lem:preserving_integer}
+    \notready
+    If a rotation $R_\theta$ preserves a lattice $\Lat$, then $\theta$ is a multiple of $60°$. Equivalently, the order of $R_\theta$ is in $\{1, 2, 3, 4, 6\}$.
+\end{theorem}
+
+\begin{proof}
+    \notready
+    Since $R_\theta$ preserves $\Lat$, its matrix in the lattice basis has integer entries (Lemma~\ref{lem:preserving_integer}). Therefore:
+    \[
+        \tr(R_\theta) = 2\cos\theta \in \Z.
+    \]
+    Since $|\cos\theta| \leq 1$, we have $2\cos\theta \in \{-2, -1, 0, 1, 2\}$, so:
+    \[
+        \cos\theta \in \{-1, -\tfrac{1}{2}, 0, \tfrac{1}{2}, 1\}.
+    \]
+    This gives $\theta \in \{0°, 60°, 90°, 120°, 180°\}$ (modulo $360°$), corresponding to rotation orders $\{1, 6, 4, 3, 2\}$.
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Crystallographic Point Groups}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Crystallographic point group]
+    \label{def:crystallographic_point_group}
+    \lean{IsCrystallographicPointGroup}
+    \uses{def:orthogonal_group, thm:crystallographic_restriction}
+    \notready
+    A finite subgroup $H \subset \Orth(2)$ is \emph{crystallographic} if every rotation in $H$ has order in $\{1, 2, 3, 4, 6\}$.
+\end{definition}
+
+\begin{corollary}[Enumeration of crystallographic point groups]
+    \label{cor:crystallographic_enumeration}
+    \lean{crystallographic_point_groups}
+    \uses{def:crystallographic_point_group, thm:finite_O2_classification, thm:crystallographic_restriction}
+    \notready
+    The crystallographic point groups in 2D are exactly:
+    \[
+        \Cyc{1}, \Cyc{2}, \Cyc{3}, \Cyc{4}, \Cyc{6}, \Dih{1}, \Dih{2}, \Dih{3}, \Dih{4}, \Dih{6}.
+    \]
+    There are 10 such groups.
+\end{corollary}
+
+\begin{proof}
+    \uses{lem:cyclic_order, lem:dihedral_order}
+    \notready
+    By Theorem~\ref{thm:finite_O2_classification}, every finite subgroup of $\Orth(2)$ is $\Cyc{n}$ or $\Dih{n}$. By the crystallographic restriction, only $n \in \{1, 2, 3, 4, 6\}$ are allowed.
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Point Group--Lattice Compatibility}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{lemma}[Compatible point groups]
+    \label{lem:compatible_point_groups}
+    \lean{compatible_point_groups}
+    \uses{cor:crystallographic_enumeration, thm:bravais_classification, def:lattice_symmetry}
+    \notready
+    A crystallographic point group $H$ can act on a lattice $\Lat$ (i.e., $H \subseteq \text{Sym}(\Lat)$) if and only if:
+    \begin{center}
+    \begin{tabular}{l|l}
+        \textbf{Lattice type} & \textbf{Compatible point groups} \\ \hline
+        Oblique & $\Cyc{1}, \Cyc{2}$ \\
+        Rectangular & $\Cyc{1}, \Cyc{2}, \Dih{1}, \Dih{2}$ \\
+        Centered rectangular & $\Cyc{1}, \Cyc{2}, \Dih{1}, \Dih{2}$ \\
+        Square & $\Cyc{1}, \Cyc{2}, \Cyc{4}, \Dih{1}, \Dih{2}, \Dih{4}$ \\
+        Hexagonal & $\Cyc{1}, \Cyc{2}, \Cyc{3}, \Cyc{6}, \Dih{1}, \Dih{2}, \Dih{3}, \Dih{6}$
+    \end{tabular}
+    \end{center}
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:oblique_symmetry, lem:rectangular_symmetry, lem:centered_rectangular_symmetry, lem:square_symmetry, lem:hexagonal_symmetry}
+    \notready
+    $H$ is compatible with $\Lat$ iff $H$ is a subgroup of $\text{Sym}(\Lat)$. The full symmetry groups are given by the Bravais classification.
+\end{proof}

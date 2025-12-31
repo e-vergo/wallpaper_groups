@@ -1,0 +1,29 @@
+/.lake
+/lake-packages
+/build
+
+# Blueprint build outputs
+/blueprint/web
+/blueprint/print
+/blueprint/*.pdf
+/blueprint/src/*.aux
+/blueprint/src/*.log
+/blueprint/src/*.out
+/blueprint/src/*.toc
+/blueprint/src/*.fls
+/blueprint/src/*.fdb_latexmk
+/blueprint/src/*.synctex.gz
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# macOS
+.DS_Store

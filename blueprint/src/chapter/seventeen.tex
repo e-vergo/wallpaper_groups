@@ -1,0 +1,320 @@
+\chapter{The Seventeen Wallpaper Groups}
+
+This chapter explicitly defines all 17 wallpaper groups using the IUCr (International Union of Crystallography) notation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Oblique Lattice Groups}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+There are 2 wallpaper groups with an oblique lattice.
+
+\begin{definition}[p1]
+    \label{def:p1}
+    \lean{WallpaperGroup.p1}
+    \uses{def:wallpaper_group, def:oblique_lattice}
+    \notready
+    The group \textbf{p1} is the simplest wallpaper group:
+    \begin{itemize}
+        \item Lattice: oblique $\Lat$
+        \item Point group: $\Cyc{1}$ (trivial)
+        \item Elements: $\{(v, I) \mid v \in \Lat\}$
+        \item Symmetry: translations only
+    \end{itemize}
+    This is the group of pure translations by a lattice.
+\end{definition}
+
+\begin{definition}[p2]
+    \label{def:p2}
+    \lean{WallpaperGroup.p2}
+    \uses{def:wallpaper_group, def:oblique_lattice, def:cyclic_point_group}
+    \notready
+    The group \textbf{p2} has 180° rotation symmetry:
+    \begin{itemize}
+        \item Lattice: oblique $\Lat$
+        \item Point group: $\Cyc{2}$
+        \item Elements: $\{(v, I), (v, R_\pi) \mid v \in \Lat\}$
+        \item Symmetry: translations + 180° rotations
+    \end{itemize}
+    This is the semidirect product $\Lat \sdp \Cyc{2}$.
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Rectangular Lattice Groups}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+There are 5 wallpaper groups with a rectangular lattice (primitive, not centered).
+
+\begin{definition}[pm]
+    \label{def:pm}
+    \lean{WallpaperGroup.pm}
+    \uses{def:wallpaper_group, def:rectangular_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{pm} has reflection symmetry:
+    \begin{itemize}
+        \item Lattice: rectangular $\Lat = \Z a + \Z b$ with $a \perp b$
+        \item Point group: $\Dih{1}$ (one reflection)
+        \item Reflection axes: parallel to $a$, passing through lattice points
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[pg]
+    \label{def:pg}
+    \lean{WallpaperGroup.pg}
+    \uses{def:wallpaper_group, def:rectangular_lattice, def:glide_reflection}
+    \notready
+    The group \textbf{pg} has glide reflection symmetry:
+    \begin{itemize}
+        \item Lattice: rectangular $\Lat = \Z a + \Z b$ with $a \perp b$
+        \item Point group: $\Dih{1}$
+        \item No pure reflections; only glide reflections with translation $\frac{1}{2}a$
+        \item Type: non-symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[pmm]
+    \label{def:pmm}
+    \lean{WallpaperGroup.pmm}
+    \uses{def:wallpaper_group, def:rectangular_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{pmm} has two perpendicular reflection axes:
+    \begin{itemize}
+        \item Lattice: rectangular $\Lat$
+        \item Point group: $\Dih{2}$
+        \item Reflection axes: parallel to both basis vectors, through lattice points
+        \item 180° rotation centers at lattice points and edge midpoints
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[pmg]
+    \label{def:pmg}
+    \lean{WallpaperGroup.pmg}
+    \uses{def:wallpaper_group, def:rectangular_lattice, def:glide_reflection}
+    \notready
+    The group \textbf{pmg} mixes reflections and glide reflections:
+    \begin{itemize}
+        \item Lattice: rectangular $\Lat$
+        \item Point group: $\Dih{2}$
+        \item One direction: pure reflections
+        \item Perpendicular direction: glide reflections
+        \item Type: non-symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[pgg]
+    \label{def:pgg}
+    \lean{WallpaperGroup.pgg}
+    \uses{def:wallpaper_group, def:rectangular_lattice, def:glide_reflection}
+    \notready
+    The group \textbf{pgg} has only glide reflections:
+    \begin{itemize}
+        \item Lattice: rectangular $\Lat$
+        \item Point group: $\Dih{2}$
+        \item Both reflection directions: glide reflections only
+        \item 180° rotations at cell centers
+        \item Type: non-symmorphic
+    \end{itemize}
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Centered Rectangular Lattice Groups}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+There are 2 wallpaper groups with a centered rectangular (rhombic) lattice.
+
+\begin{definition}[cm]
+    \label{def:cm}
+    \lean{WallpaperGroup.cm}
+    \uses{def:wallpaper_group, def:centered_rectangular_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{cm} has reflection symmetry with centered lattice:
+    \begin{itemize}
+        \item Lattice: centered rectangular $\Lat$
+        \item Point group: $\Dih{1}$
+        \item Reflection axes at two heights (lattice points and centers)
+        \item Contains both pure reflections and glide reflections
+        \item Type: symmorphic (but with glide reflections arising from centering)
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[cmm]
+    \label{def:cmm}
+    \lean{WallpaperGroup.cmm}
+    \uses{def:wallpaper_group, def:centered_rectangular_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{cmm} is the full symmetry of a rhombus:
+    \begin{itemize}
+        \item Lattice: centered rectangular $\Lat$
+        \item Point group: $\Dih{2}$
+        \item Two perpendicular reflection axes
+        \item 180° rotations
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Square Lattice Groups}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+There are 3 wallpaper groups with a square lattice.
+
+\begin{definition}[p4]
+    \label{def:p4}
+    \lean{WallpaperGroup.p4}
+    \uses{def:wallpaper_group, def:square_lattice, def:cyclic_point_group}
+    \notready
+    The group \textbf{p4} has 4-fold rotational symmetry:
+    \begin{itemize}
+        \item Lattice: square $\Lat$
+        \item Point group: $\Cyc{4}$
+        \item 90° rotations at lattice points
+        \item 180° rotations at edge midpoints and cell centers
+        \item No reflections
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[p4m]
+    \label{def:p4m}
+    \lean{WallpaperGroup.p4m}
+    \uses{def:wallpaper_group, def:square_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{p4m} is the full symmetry of a square lattice:
+    \begin{itemize}
+        \item Lattice: square $\Lat$
+        \item Point group: $\Dih{4}$
+        \item Reflection axes: parallel to edges and diagonals
+        \item 90° and 180° rotations
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[p4g]
+    \label{def:p4g}
+    \lean{WallpaperGroup.p4g}
+    \uses{def:wallpaper_group, def:square_lattice, def:glide_reflection}
+    \notready
+    The group \textbf{p4g} has 4-fold rotation with glide reflections:
+    \begin{itemize}
+        \item Lattice: square $\Lat$
+        \item Point group: $\Dih{4}$
+        \item 90° rotations at cell centers (not at lattice points)
+        \item Reflections along diagonals
+        \item Glide reflections along edges
+        \item Type: non-symmorphic
+    \end{itemize}
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Hexagonal Lattice Groups}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+There are 5 wallpaper groups with a hexagonal lattice.
+
+\begin{definition}[p3]
+    \label{def:p3}
+    \lean{WallpaperGroup.p3}
+    \uses{def:wallpaper_group, def:hexagonal_lattice, def:cyclic_point_group}
+    \notready
+    The group \textbf{p3} has 3-fold rotational symmetry:
+    \begin{itemize}
+        \item Lattice: hexagonal $\Lat$
+        \item Point group: $\Cyc{3}$
+        \item 120° rotations at lattice points and two other positions per cell
+        \item No reflections
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[p3m1]
+    \label{def:p3m1}
+    \lean{WallpaperGroup.p3m1}
+    \uses{def:wallpaper_group, def:hexagonal_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{p3m1} has 3-fold rotation and reflections:
+    \begin{itemize}
+        \item Lattice: hexagonal $\Lat$
+        \item Point group: $\Dih{3}$
+        \item 120° rotations at lattice points
+        \item Reflection axes pass through lattice points
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[p31m]
+    \label{def:p31m}
+    \lean{WallpaperGroup.p31m}
+    \uses{def:wallpaper_group, def:hexagonal_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{p31m} has 3-fold rotation and differently-oriented reflections:
+    \begin{itemize}
+        \item Lattice: hexagonal $\Lat$
+        \item Point group: $\Dih{3}$
+        \item 120° rotations at lattice points and cell centers
+        \item Reflection axes pass between lattice points
+        \item Distinguished from p3m1 by reflection axis orientation
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[p6]
+    \label{def:p6}
+    \lean{WallpaperGroup.p6}
+    \uses{def:wallpaper_group, def:hexagonal_lattice, def:cyclic_point_group}
+    \notready
+    The group \textbf{p6} has 6-fold rotational symmetry:
+    \begin{itemize}
+        \item Lattice: hexagonal $\Lat$
+        \item Point group: $\Cyc{6}$
+        \item 60° rotations at lattice points
+        \item 120° rotations at two other positions per cell
+        \item 180° rotations at edge midpoints
+        \item No reflections
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+\begin{definition}[p6m]
+    \label{def:p6m}
+    \lean{WallpaperGroup.p6m}
+    \uses{def:wallpaper_group, def:hexagonal_lattice, def:dihedral_point_group}
+    \notready
+    The group \textbf{p6m} is the full symmetry of a hexagonal lattice:
+    \begin{itemize}
+        \item Lattice: hexagonal $\Lat$
+        \item Point group: $\Dih{6}$
+        \item 60° rotations at lattice points
+        \item 6 reflection axes through each lattice point
+        \item Highest symmetry of any wallpaper group (order 12 point group)
+        \item Type: symmorphic
+    \end{itemize}
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Summary Table}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{center}
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+\textbf{Group} & \textbf{Lattice} & \textbf{Point Group} & \textbf{Order} & \textbf{Type} \\ \hline
+p1 & Oblique & $\Cyc{1}$ & 1 & Symmorphic \\
+p2 & Oblique & $\Cyc{2}$ & 2 & Symmorphic \\ \hline
+pm & Rectangular & $\Dih{1}$ & 2 & Symmorphic \\
+pg & Rectangular & $\Dih{1}$ & 2 & Non-symmorphic \\
+pmm & Rectangular & $\Dih{2}$ & 4 & Symmorphic \\
+pmg & Rectangular & $\Dih{2}$ & 4 & Non-symmorphic \\
+pgg & Rectangular & $\Dih{2}$ & 4 & Non-symmorphic \\ \hline
+cm & Centered rect. & $\Dih{1}$ & 2 & Symmorphic \\
+cmm & Centered rect. & $\Dih{2}$ & 4 & Symmorphic \\ \hline
+p4 & Square & $\Cyc{4}$ & 4 & Symmorphic \\
+p4m & Square & $\Dih{4}$ & 8 & Symmorphic \\
+p4g & Square & $\Dih{4}$ & 8 & Non-symmorphic \\ \hline
+p3 & Hexagonal & $\Cyc{3}$ & 3 & Symmorphic \\
+p3m1 & Hexagonal & $\Dih{3}$ & 6 & Symmorphic \\
+p31m & Hexagonal & $\Dih{3}$ & 6 & Symmorphic \\
+p6 & Hexagonal & $\Cyc{6}$ & 6 & Symmorphic \\
+p6m & Hexagonal & $\Dih{6}$ & 12 & Symmorphic \\ \hline
+\end{tabular}
+\end{center}

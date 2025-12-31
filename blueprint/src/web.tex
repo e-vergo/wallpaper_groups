@@ -1,0 +1,50 @@
+\documentclass[a4paper]{report}
+
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref}
+
+% Load the blueprint package with dependency graph support
+% project=../../ points to the Lean project root from blueprint/src/
+\usepackage[showmore, dep_graph, project=../../]{blueprint}
+
+% Load common macros
+\input{macros/common}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Project information - update these when GitHub is set up
+\title{Classification of the 17 Wallpaper Groups}
+\author{Eric}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This blueprint describes the formalization of the classification of wallpaper groups (plane crystallographic groups) in Lean 4 using Mathlib. The main result is that there are exactly 17 wallpaper groups up to isomorphism. A wallpaper group is defined as a discrete cocompact subgroup of the Euclidean group $\Euc(2)$.
+
+The proof proceeds by:
+\begin{enumerate}
+    \item Establishing the crystallographic restriction theorem (rotation orders in $\{1,2,3,4,6\}$)
+    \item Classifying the 10 crystallographic point groups
+    \item Classifying the 5 Bravais lattice types
+    \item Enumerating all compatible (lattice, point group) extensions
+\end{enumerate}
+\end{abstract}
+
+\tableofcontents
+
+\input{content}
+
+\end{document}

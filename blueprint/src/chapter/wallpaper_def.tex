@@ -1,0 +1,181 @@
+\chapter{Wallpaper Groups: Definition and Structure}
+
+This chapter defines wallpaper groups and establishes their basic structural properties.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Definition}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Discrete subgroup]
+    \label{def:discrete_subgroup}
+    \lean{IsDiscreteSubgroup}
+    \uses{def:euclidean_group}
+    \notready
+    A subgroup $\Gamma \subset \Euc(2)$ is \emph{discrete} if the induced topology on $\Gamma$ is discrete (equivalently, $\{e\}$ is open in $\Gamma$).
+\end{definition}
+
+\begin{definition}[Cocompact subgroup]
+    \label{def:cocompact_subgroup}
+    \lean{IsCocompact}
+    \uses{def:euclidean_group, def:euclidean_plane}
+    \notready
+    A subgroup $\Gamma \subset \Euc(2)$ is \emph{cocompact} if the quotient space $\R^2/\Gamma$ is compact.
+\end{definition}
+
+\begin{definition}[Wallpaper group]
+    \label{def:wallpaper_group}
+    \lean{IsWallpaperGroup}
+    \uses{def:discrete_subgroup, def:cocompact_subgroup}
+    \notready
+    A \emph{wallpaper group} is a subgroup $\Gamma \subset \Euc(2)$ that is both discrete and cocompact.
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Translation Lattice}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Translation subgroup of wallpaper group]
+    \label{def:wallpaper_translations}
+    \lean{WallpaperGroup.translationSubgroup}
+    \uses{def:wallpaper_group, def:translation_subgroup}
+    \notready
+    For a wallpaper group $\Gamma$, its \emph{translation subgroup} is:
+    \[
+        \TG(\Gamma) = \Gamma \cap T = \{ (v, I) \in \Gamma \}.
+    \]
+\end{definition}
+
+\begin{lemma}[Translation subgroup is a lattice]
+    \label{lem:translation_is_lattice}
+    \lean{WallpaperGroup.translationSubgroup_isLattice}
+    \uses{def:wallpaper_translations, def:lattice, def:discrete_subgroup, def:cocompact_subgroup}
+    \notready
+    For a wallpaper group $\Gamma$, the translation subgroup $\TG(\Gamma)$ is a rank-2 lattice.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:lattice_discrete, lem:lattice_cocompact}
+    \notready
+    Discreteness of $\Gamma$ implies discreteness of $\TG(\Gamma)$. Cocompactness of $\Gamma$ implies $\TG(\Gamma)$ spans $\R^2$. A discrete subgroup of $\R^2$ that spans is a rank-2 lattice.
+\end{proof}
+
+\begin{lemma}[Translation subgroup is normal]
+    \label{lem:wallpaper_translation_normal}
+    \lean{WallpaperGroup.translationSubgroup_normal}
+    \uses{def:wallpaper_translations, lem:translation_normal}
+    \notready
+    $\TG(\Gamma)$ is a normal subgroup of $\Gamma$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    Follows from $T$ being normal in $\Euc(2)$ (Lemma~\ref{lem:translation_normal}).
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Point Group}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Point group of wallpaper group]
+    \label{def:wallpaper_point_group}
+    \lean{WallpaperGroup.pointGroup}
+    \uses{def:wallpaper_group, lem:euclidean_quotient}
+    \notready
+    The \emph{point group} of a wallpaper group $\Gamma$ is:
+    \[
+        \PG(\Gamma) = \{ A \in \Orth(2) \mid \exists v : (v, A) \in \Gamma \}.
+    \]
+    Equivalently, $\PG(\Gamma)$ is the image of $\Gamma$ under the projection $\Euc(2) \to \Orth(2)$.
+\end{definition}
+
+\begin{lemma}[Point group is finite]
+    \label{lem:point_group_finite}
+    \lean{WallpaperGroup.pointGroup_finite}
+    \uses{def:wallpaper_point_group, def:discrete_subgroup}
+    \notready
+    For a wallpaper group $\Gamma$, the point group $\PG(\Gamma)$ is finite.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:translation_is_lattice}
+    \notready
+    $\PG(\Gamma) \cong \Gamma/\TG(\Gamma)$, and the translation lattice has finite index in $\Gamma$ since both are cocompact.
+\end{proof}
+
+\begin{lemma}[Point group preserves lattice]
+    \label{lem:point_group_preserves}
+    \lean{WallpaperGroup.pointGroup_preservesLattice}
+    \uses{def:wallpaper_point_group, def:wallpaper_translations, def:lattice_preserving}
+    \notready
+    The point group $\PG(\Gamma)$ preserves the translation lattice $\TG(\Gamma)$.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:wallpaper_translation_normal}
+    \notready
+    If $(v, A) \in \Gamma$ and $(w, I) \in \TG(\Gamma)$, then $(v, A)(w, I)(v, A)^{-1} = (Aw, I) \in \TG(\Gamma)$.
+\end{proof}
+
+\begin{lemma}[Point group is crystallographic]
+    \label{lem:point_group_crystallographic}
+    \lean{WallpaperGroup.pointGroup_isCrystallographic}
+    \uses{def:wallpaper_point_group, def:crystallographic_point_group, lem:point_group_finite, lem:point_group_preserves}
+    \notready
+    For a wallpaper group $\Gamma$, the point group $\PG(\Gamma)$ is one of the 10 crystallographic point groups.
+\end{lemma}
+
+\begin{proof}
+    \uses{thm:crystallographic_restriction, cor:crystallographic_enumeration}
+    \notready
+    $\PG(\Gamma)$ is finite and preserves a lattice, so by the crystallographic restriction, all rotations have order in $\{1, 2, 3, 4, 6\}$.
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Short Exact Sequence}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{lemma}[Wallpaper group short exact sequence]
+    \label{lem:wallpaper_ses}
+    \lean{WallpaperGroup.shortExactSequence}
+    \uses{def:wallpaper_translations, def:wallpaper_point_group, lem:wallpaper_translation_normal}
+    \notready
+    For a wallpaper group $\Gamma$, there is a short exact sequence:
+    \[
+        1 \longrightarrow \TG(\Gamma) \longrightarrow \Gamma \longrightarrow \PG(\Gamma) \longrightarrow 1.
+    \]
+\end{lemma}
+
+\begin{definition}[Symmorphic wallpaper group]
+    \label{def:symmorphic}
+    \lean{IsSymmorphic}
+    \uses{lem:wallpaper_ses}
+    \notready
+    A wallpaper group $\Gamma$ is \emph{symmorphic} if the short exact sequence splits, i.e., if $\Gamma \cong \TG(\Gamma) \sdp \PG(\Gamma)$.
+\end{definition}
+
+\begin{lemma}[Symmorphic characterization]
+    \label{lem:symmorphic_char}
+    \lean{isSymmorphic_iff}
+    \uses{def:symmorphic}
+    \notready
+    A wallpaper group is symmorphic if and only if it contains elements $(0, A)$ for every $A \in \PG(\Gamma)$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    The sequence splits iff there is a section $\PG(\Gamma) \to \Gamma$, i.e., iff each $A \in \PG(\Gamma)$ lifts to $(0, A) \in \Gamma$.
+\end{proof}
+
+\begin{lemma}[Non-symmorphic implies glide reflections]
+    \label{lem:non_symmorphic_glide}
+    \lean{nonSymmorphic_hasGlideReflection}
+    \uses{def:symmorphic, def:glide_reflection}
+    \notready
+    If a wallpaper group $\Gamma$ is non-symmorphic, then $\Gamma$ contains glide reflections.
+\end{lemma}
+
+\begin{proof}
+    \uses{lem:symmorphic_char, lem:glide_squared}
+    \notready
+    If $\Gamma$ is non-symmorphic, some reflection $S \in \PG(\Gamma)$ only lifts to $(v, S)$ with $v \neq 0$. Since $(v, S)^2 = (2v, I) \in \TG(\Gamma)$, we must have $v$ parallel to the reflection axis, so $(v, S)$ is a glide reflection.
+\end{proof}

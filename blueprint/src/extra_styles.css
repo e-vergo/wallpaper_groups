@@ -1,0 +1,33 @@
+/* Custom styles for the Wallpaper Groups blueprint */
+
+/* Make the dependency graph more readable */
+.dep-graph-container {
+    overflow-x: auto;
+}
+
+/* Style for theorem environments */
+.theorem, .lemma, .proposition, .corollary {
+    border-left: 3px solid #3498db;
+    padding-left: 1em;
+    margin: 1em 0;
+}
+
+.definition {
+    border-left: 3px solid #2ecc71;
+    padding-left: 1em;
+    margin: 1em 0;
+}
+
+/* Lean status indicators */
+.leanok {
+    color: #27ae60;
+}
+
+.notready {
+    color: #e74c3c;
+}
+
+.mathlibok {
+    color: #1e3a5f;
+    font-weight: bold;
+}

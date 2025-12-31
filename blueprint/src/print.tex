@@ -1,0 +1,113 @@
+\documentclass[a4paper, 11pt]{report}
+
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+% Load common macros
+\input{macros/common}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Stub out blueprint-specific commands for print version
+\newcommand{\lean}[1]{}
+\newcommand{\leanok}{}
+\newcommand{\notready}{}
+\newcommand{\mathlibok}{}
+\newcommand{\uses}[1]{}
+\newcommand{\proves}[1]{}
+\newcommand{\discussion}[1]{}
+
+\title{Classification of the 17 Wallpaper Groups\\[1em]
+\large A Lean 4 Formalization Blueprint}
+\author{Eric}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This blueprint describes the formalization of the classification of wallpaper groups (plane crystallographic groups) in Lean 4 using Mathlib. The main result is that there are exactly 17 wallpaper groups up to isomorphism. A wallpaper group is defined as a discrete cocompact subgroup of the Euclidean group $\Euc(2)$.
+
+The proof proceeds by:
+\begin{enumerate}
+    \item Establishing the crystallographic restriction theorem (rotation orders in $\{1,2,3,4,6\}$)
+    \item Classifying the 10 crystallographic point groups
+    \item Classifying the 5 Bravais lattice types
+    \item Enumerating all compatible (lattice, point group) extensions
+\end{enumerate}
+\end{abstract}
+
+\tableofcontents
+
+\input{content}
+
+\appendix
+
+\chapter{Mathlib4 Dependencies}
+
+This project relies on the following Mathlib4 infrastructure:
+
+\section{Already Available}
+\begin{itemize}
+    \item \texttt{EuclideanSpace $\R$ (Fin 2)} --- Euclidean plane
+    \item \texttt{LinearIsometryEquiv} --- Orthogonal group elements
+    \item \texttt{SemidirectProduct} --- Semidirect product construction
+    \item \texttt{IsZLattice} --- $\Z$-lattice structure
+    \item \texttt{DihedralGroup n} --- Abstract dihedral groups
+    \item \texttt{ZMod n} --- Cyclic groups
+    \item \texttt{Matrix.trace} --- Matrix trace
+\end{itemize}
+
+\section{To Be Constructed}
+\begin{itemize}
+    \item $\Euc(2)$ as explicit semidirect product $\R^2 \sdp \Orth(2)$
+    \item Embedding of \texttt{DihedralGroup n} into $\Orth(2)$
+    \item Discrete subgroup predicate for topological groups
+    \item Cocompact subgroup predicate
+    \item Classification of finite subgroups of $\Orth(2)$
+    \item The 5 Bravais lattice types
+    \item The 17 wallpaper groups
+\end{itemize}
+
+\chapter{Open Questions for Discussion}
+
+\begin{enumerate}
+    \item \textbf{$\Euc(2)$ construction}: Is there existing Mathlib infrastructure for affine isometry groups as semidirect products?
+
+    \item \textbf{Discrete subgroups}: What's the best way to express ``discrete subgroup of a topological group'' in Mathlib4?
+
+    \item \textbf{Cocompactness}: Is there existing API for cocompact group actions or compact quotients?
+
+    \item \textbf{$\Orth(2)$ classification}: Has anyone formalized that finite subgroups of $\Orth(2)$ are cyclic or dihedral?
+
+    \item \textbf{DihedralGroup embedding}: What's the cleanest way to embed \texttt{DihedralGroup n} into \texttt{LinearIsometryEquiv}?
+
+    \item \textbf{Lattice classification}: Is the classification of 2D lattices into 5 Bravais types anywhere in Mathlib?
+
+    \item \textbf{Related projects}: Are there any related formalizations (crystallographic groups, space groups) in progress?
+\end{enumerate}
+
+\chapter{References}
+
+\begin{enumerate}
+    \item Armstrong, M.A. \textit{Groups and Symmetry}. Springer UTM, 1988.
+    \item Schwarzenberger, R.L.E. ``The 17 Plane Symmetry Groups.'' \textit{Mathematical Gazette}, 1974.
+    \item Conway, J.H., Burgiel, H., and Goodman-Strauss, C. \textit{The Symmetries of Things}. A K Peters, 2008.
+    \item International Tables for Crystallography, Volume A.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,40 @@
+\chapter{Introduction}
+
+\section{Project Overview}
+
+The goal of this project is to formalize in Lean 4 + Mathlib4 the classification theorem for wallpaper groups: there are exactly 17 wallpaper groups, up to isomorphism.
+
+A \emph{wallpaper group} (also called a \emph{plane crystallographic group}) is a discrete cocompact subgroup of the Euclidean group $\Euc(2)$, the group of isometries of the Euclidean plane. These groups describe the symmetries of repeating patterns in the plane, such as those found in wallpaper, tilings, and crystal structures.
+
+\section{Main Results}
+
+The project culminates in two main theorems:
+
+\begin{enumerate}
+    \item \textbf{Classification}: Every wallpaper group is isomorphic to exactly one of 17 specific groups, denoted using IUCr notation: p1, p2, pm, pg, cm, pmm, pmg, pgg, cmm, p4, p4m, p4g, p3, p3m1, p31m, p6, p6m.
+    \item \textbf{Completeness}: There are no other wallpaper groups.
+\end{enumerate}
+
+\section{Proof Strategy}
+
+Our approach follows the classical classification:
+
+\begin{enumerate}
+    \item Define the Euclidean group $\Euc(2) = \R^2 \sdp \Orth(2)$ as a semidirect product.
+    \item Prove the \textbf{crystallographic restriction theorem}: rotations preserving a lattice can only have order 1, 2, 3, 4, or 6.
+    \item Classify the \textbf{crystallographic point groups}: the 10 finite subgroups of $\Orth(2)$ satisfying the crystallographic restriction.
+    \item Classify the \textbf{5 Bravais lattice types} in 2D.
+    \item For each compatible (lattice, point group) pair, enumerate all possible group extensions.
+    \item Prove that this enumeration yields exactly 17 non-isomorphic groups.
+\end{enumerate}
+
+\section{Mathlib4 Dependencies}
+
+This project builds on the following Mathlib4 infrastructure:
+\begin{itemize}
+    \item \texttt{EuclideanSpace $\R$ (Fin 2)} --- the Euclidean plane
+    \item \texttt{LinearIsometryEquiv} --- orthogonal group elements
+    \item \texttt{SemidirectProduct} --- semidirect product construction
+    \item \texttt{IsZLattice} --- $\Z$-lattice structure
+    \item \texttt{DihedralGroup n} --- abstract dihedral groups
+\end{itemize}

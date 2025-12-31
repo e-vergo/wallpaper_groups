@@ -1,0 +1,221 @@
+\chapter{Lattices and Bravais Types}
+
+This chapter develops the theory of 2D lattices and classifies them into 5 Bravais types based on their symmetry groups.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Lattice Basics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[2D Lattice]
+    \label{def:lattice}
+    \lean{Lattice2}
+    \uses{def:euclidean_plane}
+    \notready
+    A \emph{(2-dimensional) lattice} $\Lat \subset \R^2$ is a discrete subgroup isomorphic to $\Z^2$. Equivalently, $\Lat = \Z a + \Z b$ for some linearly independent vectors $a, b \in \R^2$.
+
+    In Mathlib, we use \texttt{IsZLattice} with the condition that the lattice has rank 2.
+\end{definition}
+
+\begin{definition}[Lattice basis]
+    \label{def:lattice_basis}
+    \lean{latticeBasis}
+    \uses{def:lattice}
+    \notready
+    A \emph{basis} for a lattice $\Lat$ is a pair of vectors $(a, b)$ such that $\Lat = \Z a + \Z b$.
+\end{definition}
+
+\begin{lemma}[Lattice is discrete]
+    \label{lem:lattice_discrete}
+    \lean{Lattice2.discrete}
+    \uses{def:lattice}
+    \notready
+    Every lattice is a discrete subgroup of $(\R^2, +)$.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    This is part of the definition/Mathlib's \texttt{IsZLattice}.
+\end{proof}
+
+\begin{lemma}[Lattice cocompactness]
+    \label{lem:lattice_cocompact}
+    \lean{Lattice2.cocompact}
+    \uses{def:lattice}
+    \notready
+    For any lattice $\Lat$, the quotient $\R^2/\Lat$ is compact (a torus).
+\end{lemma}
+
+\begin{proof}
+    \uses{def:lattice_basis}
+    \notready
+    The fundamental domain is the parallelogram spanned by any basis, which is compact.
+\end{proof}
+
+\begin{definition}[Fundamental domain]
+    \label{def:fundamental_domain}
+    \lean{latticeFundamentalDomain}
+    \uses{def:lattice, def:lattice_basis}
+    \notready
+    For a lattice $\Lat$ with basis $(a, b)$, the \emph{fundamental domain} is:
+    \[
+        F = \{ s a + t b \mid 0 \leq s, t < 1 \}.
+    \]
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Lattice Symmetry}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Lattice symmetry group]
+    \label{def:lattice_symmetry}
+    \lean{latticeSymmetryGroup}
+    \uses{def:lattice, def:orthogonal_group}
+    \notready
+    The \emph{symmetry group} (or \emph{holohedry}) of a lattice $\Lat$ is:
+    \[
+        \text{Sym}(\Lat) = \{ A \in \Orth(2) \mid A(\Lat) = \Lat \}.
+    \]
+\end{definition}
+
+\begin{lemma}[Symmetry group is finite]
+    \label{lem:symmetry_finite}
+    \lean{latticeSymmetryGroup_finite}
+    \uses{def:lattice_symmetry}
+    \notready
+    For any lattice $\Lat$, the symmetry group $\text{Sym}(\Lat)$ is finite.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    $A \in \text{Sym}(\Lat)$ permutes the finitely many shortest nonzero vectors in $\Lat$.
+\end{proof}
+
+\begin{definition}[Lattice preserving]
+    \label{def:lattice_preserving}
+    \lean{IsLatticePreserving}
+    \uses{def:lattice}
+    \notready
+    A linear map $A : \R^2 \to \R^2$ is \emph{$\Lat$-preserving} if $A(\Lat) \subseteq \Lat$.
+\end{definition}
+
+\begin{lemma}[Preserving iff integer matrix]
+    \label{lem:preserving_integer}
+    \lean{isLatticePreserving_iff_integerMatrix}
+    \uses{def:lattice_preserving, def:lattice_basis}
+    \notready
+    Let $(a, b)$ be a basis for $\Lat$. Then $A$ preserves $\Lat$ if and only if the matrix of $A$ in the basis $(a, b)$ has integer entries.
+\end{lemma}
+
+\begin{proof}
+    \notready
+    $A(a), A(b) \in \Lat$ iff they are integer linear combinations of $a$ and $b$.
+\end{proof}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Five Bravais Lattice Types}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{definition}[Oblique lattice]
+    \label{def:oblique_lattice}
+    \lean{ObliqueLattice}
+    \uses{def:lattice, def:lattice_symmetry}
+    \notready
+    A lattice is \emph{oblique} if its symmetry group is $\Cyc{2}$ (the minimal symmetry: only $\pm I$).
+\end{definition}
+
+\begin{definition}[Rectangular lattice]
+    \label{def:rectangular_lattice}
+    \lean{RectangularLattice}
+    \uses{def:lattice, def:lattice_symmetry}
+    \notready
+    A lattice is \emph{rectangular} if it has a basis $(a, b)$ with $a \perp b$ and $|a| \neq |b|$. Its symmetry group is $\Dih{2}$.
+\end{definition}
+
+\begin{definition}[Centered rectangular lattice]
+    \label{def:centered_rectangular_lattice}
+    \lean{CenteredRectangularLattice}
+    \uses{def:lattice, def:lattice_symmetry}
+    \notready
+    A lattice is \emph{centered rectangular} (or \emph{rhombic}) if it has a basis $(a, b)$ with $|a| = |b|$ but $a \not\perp b$ and $a \neq \pm b$. Its symmetry group is $\Dih{2}$.
+\end{definition}
+
+\begin{definition}[Square lattice]
+    \label{def:square_lattice}
+    \lean{SquareLattice}
+    \uses{def:lattice, def:lattice_symmetry}
+    \notready
+    A lattice is \emph{square} if it has a basis $(a, b)$ with $a \perp b$ and $|a| = |b|$. Its symmetry group is $\Dih{4}$.
+\end{definition}
+
+\begin{definition}[Hexagonal lattice]
+    \label{def:hexagonal_lattice}
+    \lean{HexagonalLattice}
+    \uses{def:lattice, def:lattice_symmetry}
+    \notready
+    A lattice is \emph{hexagonal} if it has a basis $(a, b)$ with $|a| = |b|$ and angle $60°$ or $120°$ between them. Its symmetry group is $\Dih{6}$.
+\end{definition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Bravais Classification}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{lemma}[Oblique symmetry]
+    \label{lem:oblique_symmetry}
+    \lean{ObliqueLattice.symmetryGroup}
+    \uses{def:oblique_lattice, def:cyclic_point_group}
+    \notready
+    The symmetry group of an oblique lattice is $\Cyc{2}$.
+\end{lemma}
+
+\begin{lemma}[Rectangular symmetry]
+    \label{lem:rectangular_symmetry}
+    \lean{RectangularLattice.symmetryGroup}
+    \uses{def:rectangular_lattice, def:dihedral_point_group}
+    \notready
+    The symmetry group of a rectangular lattice is $\Dih{2}$.
+\end{lemma}
+
+\begin{lemma}[Centered rectangular symmetry]
+    \label{lem:centered_rectangular_symmetry}
+    \lean{CenteredRectangularLattice.symmetryGroup}
+    \uses{def:centered_rectangular_lattice, def:dihedral_point_group}
+    \notready
+    The symmetry group of a centered rectangular lattice is $\Dih{2}$.
+\end{lemma}
+
+\begin{lemma}[Square symmetry]
+    \label{lem:square_symmetry}
+    \lean{SquareLattice.symmetryGroup}
+    \uses{def:square_lattice, def:dihedral_point_group}
+    \notready
+    The symmetry group of a square lattice is $\Dih{4}$.
+\end{lemma}
+
+\begin{lemma}[Hexagonal symmetry]
+    \label{lem:hexagonal_symmetry}
+    \lean{HexagonalLattice.symmetryGroup}
+    \uses{def:hexagonal_lattice, def:dihedral_point_group}
+    \notready
+    The symmetry group of a hexagonal lattice is $\Dih{6}$.
+\end{lemma}
+
+\begin{theorem}[Bravais classification]
+    \label{thm:bravais_classification}
+    \lean{bravais_classification}
+    \uses{def:oblique_lattice, def:rectangular_lattice, def:centered_rectangular_lattice, def:square_lattice, def:hexagonal_lattice, lem:symmetry_finite}
+    \notready
+    Every 2D lattice is equivalent (under $\GL_2(\R)$) to exactly one of the five types: oblique, rectangular, centered rectangular, square, or hexagonal.
+\end{theorem}
+
+\begin{proof}
+    \uses{lem:oblique_symmetry, lem:rectangular_symmetry, lem:centered_rectangular_symmetry, lem:square_symmetry, lem:hexagonal_symmetry}
+    \notready
+    Classify by the symmetry group, which must be a finite subgroup of $\Orth(2)$:
+    \begin{itemize}
+        \item $\Cyc{2}$: oblique
+        \item $\Dih{2}$: rectangular or centered rectangular (distinguished by whether shortest vectors are perpendicular)
+        \item $\Dih{4}$: square
+        \item $\Dih{6}$: hexagonal
+    \end{itemize}
+    Other finite subgroups of $\Orth(2)$ cannot occur as lattice symmetry groups (by the crystallographic restriction).
+\end{proof}
