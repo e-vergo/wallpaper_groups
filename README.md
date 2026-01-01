@@ -19,36 +19,28 @@ The formalization blueprint with dependency graph is available at:
 
 ---
 
-## Current Status (Handoff Notes)
+## Current Status
 
-### What's Done ✅
+### Completed ✅
 
-1. **Lean 4 project initialized** with Lake + Mathlib 4.26.0 + doc-gen4
-2. **Leanblueprint structure created** with full LaTeX content:
-   - `blueprint/src/chapter/` - 8 chapters covering all definitions and theorems
-   - `blueprint/src/web.tex` and `print.tex` - entry points
-   - `blueprint/src/macros/common.tex` - shared LaTeX macros
-   - Dependency graph via `\uses{}` macros throughout
-3. **GitHub Actions workflow** at `.github/workflows/blueprint.yml` for auto-deployment
-4. **~48 definitions and ~64 lemmas/theorems** fully specified in the blueprint
+1. **Lean 4 project initialized** with Lake + Mathlib + doc-gen4 (Lean 4.27.0-rc1)
+2. **Leanblueprint fully configured and building**:
+   - 8 chapters with ~48 definitions and ~64 lemmas/theorems
+   - Dependency graph via `\uses{}` macros
+   - Local build tested and working
+3. **GitHub Actions workflow** configured for auto-deployment
 
-### What's Pending ⏳
+### Next Steps ⏳
 
-1. **Run `lake update`** - Mathlib clone was interrupted. On fresh clone, run:
-   ```bash
-   lake update        # Fetches mathlib + doc-gen4 (takes a few minutes)
-   lake exe cache get # Downloads prebuilt mathlib (much faster than building)
-   ```
-
-2. **Enable GitHub Pages** - In repo settings:
+1. **Enable GitHub Pages** - In repo settings:
    - Settings → Pages → Source: "GitHub Actions"
    - Settings → Actions → General → Enable "Allow GitHub Actions to create and approve pull requests"
 
-3. **Post to Lean Zulip** - Template ready in `ZULIP_POST.md` for community feedback
+2. **Post to Lean Zulip** - Template ready in `ZULIP_POST.md`
 
-4. **Start Lean implementation** - No Lean code written yet, just the blueprint
+3. **Start Lean implementation** - No Lean code written yet
 
-### Proof Strategy Decisions
+### Proof Strategy
 
 | Aspect | Decision |
 |--------|----------|
@@ -58,7 +50,7 @@ The formalization blueprint with dependency graph is available at:
 | Completeness | Case exhaustion over (lattice, point group) pairs |
 | Naming | IUCr notation (p1, p2, pm, pg, cm, pmm, ...) |
 
-### Mathlib4 Infrastructure Available
+### Mathlib4 Infrastructure
 
 - `EuclideanSpace ℝ (Fin 2)` - Euclidean plane
 - `LinearIsometryEquiv` - Orthogonal group elements
@@ -66,27 +58,26 @@ The formalization blueprint with dependency graph is available at:
 - `IsZLattice` - Z-lattice structure
 - `DihedralGroup n` - Abstract dihedral groups
 
-### Key Questions for Zulip
-
-1. Best way to define E(2) as semidirect product?
-2. How to express "discrete subgroup" idiomatically?
-3. Is finite subgroups of O(2) classification formalized?
-4. Any related crystallographic work in progress?
-
 ---
 
 ## Building
 
+### Lean Project
+
 ```bash
-# First time setup (after cloning)
 lake update
 lake exe cache get
-
-# Build the project
 lake build
+```
 
-# Build blueprint locally (requires Python + leanblueprint)
+### Blueprint (requires TeX + Python)
+
+```bash
+# Install dependencies
+brew install --cask basictex  # or full MacTeX
 pip install leanblueprint
+
+# Build and serve
 leanblueprint web
 leanblueprint serve  # View at http://localhost:8000
 ```
@@ -96,38 +87,29 @@ leanblueprint serve  # View at http://localhost:8000
 ```
 .
 ├── WallpaperGroups/
-│   └── Basic.lean           # Placeholder (no code yet)
+│   └── Basic.lean
 ├── blueprint/
 │   ├── src/
-│   │   ├── web.tex          # plasTeX entry (dependency graph)
-│   │   ├── print.tex        # PDF entry
-│   │   ├── content.tex      # Chapter imports
+│   │   ├── web.tex
+│   │   ├── print.tex
+│   │   ├── content.tex
+│   │   ├── plastex.cfg
 │   │   ├── macros/common.tex
-│   │   ├── plastex.cfg      # plasTeX config
 │   │   └── chapter/
 │   │       ├── intro.tex
-│   │       ├── euclidean.tex       # E(2) definitions
-│   │       ├── point_groups.tex    # Cₙ, Dₙ classification
-│   │       ├── lattices.tex        # 5 Bravais types
-│   │       ├── crystallographic.tex # Restriction theorem
-│   │       ├── wallpaper_def.tex   # Wallpaper group def
-│   │       ├── seventeen.tex       # All 17 groups
-│   │       └── classification.tex  # Main theorem
+│   │       ├── euclidean.tex
+│   │       ├── point_groups.tex
+│   │       ├── lattices.tex
+│   │       ├── crystallographic.tex
+│   │       ├── wallpaper_def.tex
+│   │       ├── seventeen.tex
+│   │       └── classification.tex
 │   └── requirements.txt
-├── .github/workflows/blueprint.yml  # CI/CD for Pages
-├── ZULIP_POST.md                    # Ready-to-post template
-├── lakefile.toml                    # Lake config (mathlib + doc-gen4)
-└── lean-toolchain                   # Lean 4.26.0
+├── .github/workflows/blueprint.yml
+├── ZULIP_POST.md
+├── lakefile.toml
+└── lean-toolchain  # v4.27.0-rc1
 ```
-
-## GitHub Setup
-
-To enable GitHub Pages for the blueprint:
-
-1. Go to **Settings** → **Pages**
-2. Under **Source**, select **GitHub Actions**
-3. Go to **Settings** → **Actions** → **General**
-4. Enable **Allow GitHub Actions to create and approve pull requests**
 
 ## References
 
