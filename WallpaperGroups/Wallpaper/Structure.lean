@@ -100,7 +100,9 @@ def WallpaperGroup.pointGroup (Γ : Subgroup EuclideanGroup2) : Subgroup Orthogo
       · simp only [EuclideanGroup2.mk]
         have h := (EuclideanGroup2.inv_def (EuclideanGroup2.mk v A)).1
         simp only [EuclideanGroup2.translation, EuclideanGroup2.mk] at h
-        simp only [h, ofAdd_toAdd]
+        have h' := congr_arg Multiplicative.ofAdd h
+        simp only [ofAdd_toAdd] at h'
+        exact h'
       · simp only [EuclideanGroup2.mk, SemidirectProduct.inv_right]
     rw [← h_eq]
     exact h_inv_mem

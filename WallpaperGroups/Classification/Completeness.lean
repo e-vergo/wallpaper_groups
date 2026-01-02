@@ -3,6 +3,11 @@ Copyright (c) 2025 Wallpaper Groups Project. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import WallpaperGroups.Classification.Distinctness
+import WallpaperGroups.Groups.Oblique
+import WallpaperGroups.Groups.Rectangular
+import WallpaperGroups.Groups.CenteredRectangular
+import WallpaperGroups.Groups.Square
+import WallpaperGroups.Groups.Hexagonal
 
 /-!
 # Classification Theorem: Exactly 17 Wallpaper Groups
@@ -71,11 +76,13 @@ theorem centeredRectangularLattice_wallpaperGroups (Γ : Subgroup EuclideanGroup
     (hΓ : IsWallpaperGroup Γ)
     (Λ : Lattice2)
     (hΛ_trans : ∀ v, v ∈ Λ ↔ (⟨v, 1⟩ : EuclideanGroup2) ∈ WallpaperGroup.translationSubgroup Γ)
-    (_hΛ_cr : IsCenteredRectangularLattice Λ) :
+    (_hΛ_cr : IsCenteredRectangularLattice Λ)
+    (hΛ_D1 : DihedralPointGroup 1 ≤ latticeSymmetryGroup Λ)
+    (hΛ_D2 : DihedralPointGroup 2 ≤ latticeSymmetryGroup Λ) :
     Nonempty (Γ ≃* WallpaperGroup.p1 Λ) ∨
     Nonempty (Γ ≃* WallpaperGroup.p2 Λ) ∨
-    Nonempty (Γ ≃* WallpaperGroup.cm Λ) ∨
-    Nonempty (Γ ≃* WallpaperGroup.cmm Λ) := by
+    Nonempty (Γ ≃* WallpaperGroup.cm Λ hΛ_D1) ∨
+    Nonempty (Γ ≃* WallpaperGroup.cmm Λ hΛ_D2) := by
   sorry
 
 /-- Every wallpaper group with square lattice is isomorphic to one of
@@ -86,10 +93,10 @@ theorem squareLattice_wallpaperGroups (Γ : Subgroup EuclideanGroup2)
     (hΓ : IsWallpaperGroup Γ)
     (Λ : Lattice2)
     (hΛ_trans : ∀ v, v ∈ Λ ↔ (⟨v, 1⟩ : EuclideanGroup2) ∈ WallpaperGroup.translationSubgroup Γ)
-    (_hΛ_sq : IsSquareLattice Λ) :
+    (hΛ_sq : IsSquareLattice Λ) :
     Nonempty (Γ ≃* WallpaperGroup.p1 Λ) ∨
     Nonempty (Γ ≃* WallpaperGroup.p2 Λ) ∨
-    Nonempty (Γ ≃* WallpaperGroup.p4 Λ) ∨
+    Nonempty (Γ ≃* WallpaperGroup.p4 Λ hΛ_sq) ∨
     Nonempty (Γ ≃* WallpaperGroup.p4m Λ) ∨
     Nonempty (Γ ≃* WallpaperGroup.p4g Λ) := by
   sorry
@@ -102,10 +109,11 @@ theorem hexagonalLattice_wallpaperGroups (Γ : Subgroup EuclideanGroup2)
     (hΓ : IsWallpaperGroup Γ)
     (Λ : Lattice2)
     (hΛ_trans : ∀ v, v ∈ Λ ↔ (⟨v, 1⟩ : EuclideanGroup2) ∈ WallpaperGroup.translationSubgroup Γ)
-    (_hΛ_hex : IsHexagonalLattice Λ) :
+    (_hΛ_hex : IsHexagonalLattice Λ)
+    (hΛ_std : IsStandardHexagonalLattice Λ) :
     Nonempty (Γ ≃* WallpaperGroup.p1 Λ) ∨
     Nonempty (Γ ≃* WallpaperGroup.p2 Λ) ∨
-    Nonempty (Γ ≃* WallpaperGroup.p3 Λ) ∨
+    Nonempty (Γ ≃* WallpaperGroup.p3 Λ hΛ_std) ∨
     Nonempty (Γ ≃* WallpaperGroup.p3m1 Λ) ∨
     Nonempty (Γ ≃* WallpaperGroup.p31m Λ) ∨
     Nonempty (Γ ≃* WallpaperGroup.p6 Λ) ∨
@@ -125,6 +133,10 @@ inductive WallpaperGroupType
 
 /-- Every wallpaper group is isomorphic to exactly one of the 17 types.
 
+Note: The wallpaper group definitions for cm, cmm, p4, p3, etc. require
+additional hypotheses on the lattice (e.g., symmetry conditions).
+In the classification, these are satisfied because lattice type determines symmetry.
+
 blueprint: thm:classification -/
 theorem wallpaper_classification (Γ : Subgroup EuclideanGroup2) (hΓ : IsWallpaperGroup Γ) :
     ∃! (t : WallpaperGroupType), ∃ Λ : Lattice2,
@@ -137,12 +149,14 @@ theorem wallpaper_classification (Γ : Subgroup EuclideanGroup2) (hΓ : IsWallpa
       | .pmm => Nonempty (Γ ≃* WallpaperGroup.pmm Λ)
       | .pmg => Nonempty (Γ ≃* WallpaperGroup.pmg Λ)
       | .pgg => Nonempty (Γ ≃* WallpaperGroup.pgg Λ)
-      | .cm => Nonempty (Γ ≃* WallpaperGroup.cm Λ)
-      | .cmm => Nonempty (Γ ≃* WallpaperGroup.cmm Λ)
-      | .p4 => Nonempty (Γ ≃* WallpaperGroup.p4 Λ)
+      | .cm => ∃ (h : DihedralPointGroup 1 ≤ latticeSymmetryGroup Λ),
+               Nonempty (Γ ≃* WallpaperGroup.cm Λ h)
+      | .cmm => ∃ (h : DihedralPointGroup 2 ≤ latticeSymmetryGroup Λ),
+                Nonempty (Γ ≃* WallpaperGroup.cmm Λ h)
+      | .p4 => ∃ (h : IsSquareLattice Λ), Nonempty (Γ ≃* WallpaperGroup.p4 Λ h)
       | .p4m => Nonempty (Γ ≃* WallpaperGroup.p4m Λ)
       | .p4g => Nonempty (Γ ≃* WallpaperGroup.p4g Λ)
-      | .p3 => Nonempty (Γ ≃* WallpaperGroup.p3 Λ)
+      | .p3 => ∃ (h : IsStandardHexagonalLattice Λ), Nonempty (Γ ≃* WallpaperGroup.p3 Λ h)
       | .p3m1 => Nonempty (Γ ≃* WallpaperGroup.p3m1 Λ)
       | .p31m => Nonempty (Γ ≃* WallpaperGroup.p31m Λ)
       | .p6 => Nonempty (Γ ≃* WallpaperGroup.p6 Λ)
@@ -153,7 +167,7 @@ theorem wallpaper_classification (Γ : Subgroup EuclideanGroup2) (hΓ : IsWallpa
 
 blueprint: cor:seventeen -/
 theorem wallpaper_count : Fintype.card WallpaperGroupType = 17 := by
-  native_decide
+  rfl
 
 /-- The classification can also be stated as: the quotient of wallpaper groups
 by isomorphism has exactly 17 elements. -/

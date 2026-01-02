@@ -178,7 +178,7 @@ lemma stdHexLattice_C6_inv_preserves (hΛ : IsStandardHexagonalLattice Λ)
 variable (hΛ : IsStandardHexagonalLattice Λ)
 
 /-- Key lemma: orthogonalActionHom converts to matrix-vector multiplication. -/
-lemma orthogonalActionHom_toAdd (A : OrthogonalGroup2) (v : Multiplicative EuclideanPlane) :
+private lemma orthogonalActionHom_toAdd' (A : OrthogonalGroup2) (v : Multiplicative EuclideanPlane) :
     Multiplicative.toAdd ((orthogonalActionHom A) v) =
     (EuclideanSpace.equiv (Fin 2) ℝ).symm
       (A.1.mulVec (EuclideanSpace.equiv (Fin 2) ℝ (Multiplicative.toAdd v))) := by
@@ -190,8 +190,13 @@ lemma orthogonalActionHom_toAdd (A : OrthogonalGroup2) (v : Multiplicative Eucli
   unfold AddMonoidHom.toMultiplicative
   simp only [Equiv.coe_fn_mk, MonoidHom.coe_mk, OneHom.coe_mk]
   simp only [toAdd_ofAdd, AddEquiv.coe_toAddMonoidHom, LinearEquiv.coe_toAddEquiv]
-  congr 1
-  rw [Matrix.toEuclideanLin_apply]
+  -- LHS is ↑(LinearEquiv.ofLinear f g ...) (toAdd v) = f (toAdd v) by LinearEquiv coercion
+  -- The coercion ↑(LinearEquiv.ofLinear f g ...) is definitionally (LinearEquiv.ofLinear f g ...).toFun
+  -- and (LinearEquiv.ofLinear f g ...).toFun = f by definition
+  -- So LHS = (Matrix.toEuclideanLin A.1) (toAdd v)
+  -- Use toEuclideanLin_apply: this equals WithLp.toLp 2 (A.1.mulVec (toAdd v).ofLp)
+  -- RHS = equiv.symm (A.1.mulVec (equiv (toAdd v)))
+  -- Since equiv is the identity on underlying type, this is definitionally equal
   rfl
 
 /-! ### The wallpaper group p3 -/
@@ -215,7 +220,7 @@ def WallpaperGroup.p3 : Subgroup EuclideanGroup2 where
       rw [toAdd_mul]
       apply Λ.add_mem ha2
       -- The action of a.right on b.left preserves the lattice
-      rw [orthogonalActionHom_toAdd]
+      rw [orthogonalActionHom_toAdd']
       exact stdHexLattice_C3_preserves Λ hΛ a.right ha1 (Multiplicative.toAdd b.left) hb2
   one_mem' := by
     constructor
@@ -232,12 +237,15 @@ def WallpaperGroup.p3 : Subgroup EuclideanGroup2 where
     · simp only [SemidirectProduct.inv_left]
       -- Need: toAdd((orthogonalActionHom a.right⁻¹) a.left⁻¹) ∈ Λ
       -- This is -(A⁻¹ * v) where v ∈ Λ and A⁻¹ ∈ C₃
-      rw [orthogonalActionHom_toAdd, toAdd_inv]
+      rw [orthogonalActionHom_toAdd', toAdd_inv]
+      -- Goal: equiv.symm (A⁻¹.mulVec (equiv (-v))) ∈ Λ
+      -- Use that equiv (-v) = -(equiv v) and mulVec_neg and equiv.symm linear
+      rw [ContinuousLinearEquiv.map_neg, Matrix.mulVec_neg, map_neg]
       apply Λ.neg_mem
       exact stdHexLattice_C3_inv_preserves Λ hΛ a.right ha1 (Multiplicative.toAdd a.left) ha2
 
 /-- p3 is a wallpaper group. -/
-lemma WallpaperGroup.p3.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.p3 Λ) := by
+lemma WallpaperGroup.p3.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.p3 Λ hΛ) := by
   constructor
   · -- Discrete
     use 1
@@ -256,14 +264,14 @@ lemma WallpaperGroup.p3.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.p3 �
       sorry -- every point can be translated into fundamental domain
 
 /-- p3 is symmorphic. -/
-lemma WallpaperGroup.p3.isSymmorphic : IsSymmorphic (WallpaperGroup.p3 Λ) := by
+lemma WallpaperGroup.p3.isSymmorphic : IsSymmorphic (WallpaperGroup.p3 Λ hΛ) := by
   -- We need to construct a section s : pointGroup → p3 such that (s A).right = A
   -- For symmorphic groups, we can take s(A) = (0, A)
   sorry
 
 /-- The point group of p3 is C₃. -/
 lemma WallpaperGroup.p3.pointGroup :
-    Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.p3 Λ)) ≃* CyclicPointGroup 3) := by
+    Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.p3 Λ hΛ)) ≃* CyclicPointGroup 3) := by
   -- The projection to O(2) gives exactly C₃
   sorry
 
@@ -544,10 +552,10 @@ lemma WallpaperGroup.p6m.pointGroup :
 Every wallpaper group with a hexagonal translation lattice is isomorphic to exactly one of:
 p3, p3m1, p31m, p6, p6m. -/
 lemma hexagonal_wallpaperGroups (Γ : Subgroup EuclideanGroup2) (hΓ : IsWallpaperGroup Γ)
-    (Λ' : Lattice2)
+    (Λ' : Lattice2) (hΛ'std : IsStandardHexagonalLattice Λ')
     (hΛ' : ∀ v, v ∈ Λ' ↔ (⟨v, 1⟩ : EuclideanGroup2) ∈ WallpaperGroup.translationSubgroup Γ)
     (hhex : IsHexagonalLattice Λ') :
-    Nonempty (Γ ≃* WallpaperGroup.p3 Λ') ∨
+    Nonempty (Γ ≃* WallpaperGroup.p3 Λ' hΛ'std) ∨
     Nonempty (Γ ≃* WallpaperGroup.p3m1 Λ') ∨
     Nonempty (Γ ≃* WallpaperGroup.p31m Λ') ∨
     Nonempty (Γ ≃* WallpaperGroup.p6 Λ') ∨

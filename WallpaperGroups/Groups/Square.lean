@@ -216,7 +216,7 @@ lemma square_wallpaperGroups (Γ : Subgroup EuclideanGroup2) (hΓ : IsWallpaperG
     (Λ' : Lattice2)
     (hΛ' : ∀ v, v ∈ Λ' ↔ (⟨v, 1⟩ : EuclideanGroup2) ∈ WallpaperGroup.translationSubgroup Γ)
     (hsq : IsSquareLattice Λ') :
-    Nonempty (Γ ≃* WallpaperGroup.p4 Λ') ∨
+    Nonempty (Γ ≃* WallpaperGroup.p4 Λ' hsq) ∨
     Nonempty (Γ ≃* WallpaperGroup.p4m Λ') ∨
     Nonempty (Γ ≃* WallpaperGroup.p4g Λ') := by
   sorry

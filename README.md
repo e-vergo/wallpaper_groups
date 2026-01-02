@@ -21,24 +21,31 @@ The formalization blueprint with dependency graph is available at:
 
 ## Current Status
 
+**Project builds successfully** with Lean 4.27.0-rc1 + Mathlib.
+
+| Metric | Count |
+|--------|-------|
+| Lean files | 23 |
+| Lines of code | ~7,700 |
+| Remaining `sorry` | 94 |
+
 ### Completed ✅
 
-1. **Lean 4 project initialized** with Lake + Mathlib + doc-gen4 (Lean 4.27.0-rc1)
-2. **Leanblueprint fully configured and building**:
-   - 8 chapters with ~48 definitions and ~64 lemmas/theorems
-   - Dependency graph via `\uses{}` macros
-   - Local build tested and working
-3. **GitHub Actions workflow** configured for auto-deployment
+- **Euclidean foundations**: E(2) = ℝ² ⋊ O(2) semidirect product structure
+- **Orthogonal group**: O(2), SO(2), rotation/reflection matrices with full algebraic properties
+- **Point groups**: Cyclic Cₙ and dihedral Dₙ subgroups of O(2) with cardinality proofs
+- **Lattices**: Rank-2 lattice structure, basis existence, discreteness
+- **Lattice symmetry**: Finite symmetry groups, integer matrix characterization
+- **Crystallographic restriction**: Main theorem proving rotation orders ∈ {1,2,3,4,6}
+- **Wallpaper group definition**: IsWallpaperGroup predicate with discrete + cocompact conditions
+- **All 17 groups defined**: p1, p2, pm, pg, cm, pmm, pmg, pgg, cmm, p4, p4m, p4g, p3, p3m1, p31m, p6, p6m
 
-### Next Steps ⏳
+### In Progress ⏳
 
-1. **Enable GitHub Pages** - In repo settings:
-   - Settings → Pages → Source: "GitHub Actions"
-   - Settings → Actions → General → Enable "Allow GitHub Actions to create and approve pull requests"
-
-2. **Post to Lean Zulip** - Template ready in `ZULIP_POST.md`
-
-3. **Start Lean implementation** - No Lean code written yet
+- **Group properties**: isWallpaperGroup, isSymmorphic, pointGroup proofs for each of 17 groups
+- **Bravais classification**: Proving every lattice is exactly one of 5 types
+- **Distinctness**: Proving the 17 groups are pairwise non-isomorphic
+- **Completeness**: Main classification theorem
 
 ### Proof Strategy
 
@@ -49,14 +56,6 @@ The formalization blueprint with dependency graph is available at:
 | Extension classification | Explicit enumeration (not H² cohomology) |
 | Completeness | Case exhaustion over (lattice, point group) pairs |
 | Naming | IUCr notation (p1, p2, pm, pg, cm, pmm, ...) |
-
-### Mathlib4 Infrastructure
-
-- `EuclideanSpace ℝ (Fin 2)` - Euclidean plane
-- `LinearIsometryEquiv` - Orthogonal group elements
-- `SemidirectProduct` - For E(2) = ℝ² ⋊ O(2)
-- `IsZLattice` - Z-lattice structure
-- `DihedralGroup n` - Abstract dihedral groups
 
 ---
 
@@ -85,30 +84,37 @@ leanblueprint serve  # View at http://localhost:8000
 ## Project Structure
 
 ```
-.
-├── WallpaperGroups/
-│   └── Basic.lean
-├── blueprint/
-│   ├── src/
-│   │   ├── web.tex
-│   │   ├── print.tex
-│   │   ├── content.tex
-│   │   ├── plastex.cfg
-│   │   ├── macros/common.tex
-│   │   └── chapter/
-│   │       ├── intro.tex
-│   │       ├── euclidean.tex
-│   │       ├── point_groups.tex
-│   │       ├── lattices.tex
-│   │       ├── crystallographic.tex
-│   │       ├── wallpaper_def.tex
-│   │       ├── seventeen.tex
-│   │       └── classification.tex
-│   └── requirements.txt
-├── .github/workflows/blueprint.yml
-├── ZULIP_POST.md
-├── lakefile.toml
-└── lean-toolchain  # v4.27.0-rc1
+WallpaperGroups/
+├── Basic.lean                      # Common imports
+├── Euclidean/
+│   ├── Plane.lean                  # EuclideanPlane = EuclideanSpace ℝ (Fin 2)
+│   ├── OrthogonalGroup.lean        # O(2), SO(2), rotation/reflection matrices
+│   └── EuclideanGroup.lean         # E(2) = ℝ² ⋊ O(2)
+├── PointGroup/
+│   ├── RotationReflection.lean     # Shared rotation/reflection helpers
+│   ├── CyclicPointGroup.lean       # Cₙ definitions and properties
+│   ├── DihedralPointGroup.lean     # Dₙ definitions and properties
+│   └── FiniteO2Classification.lean # Finite subgroups of O(2) are Cₙ or Dₙ
+├── Lattice/
+│   ├── Basic.lean                  # Lattice2 structure, basis, discreteness
+│   ├── Symmetry.lean               # Lattice symmetry groups
+│   └── BravaisTypes.lean           # 5 Bravais lattice types
+├── Crystallographic/
+│   ├── Restriction.lean            # Crystallographic restriction theorem
+│   └── PointGroups.lean            # 10 crystallographic point groups
+├── Wallpaper/
+│   ├── Definition.lean             # IsWallpaperGroup predicate
+│   └── Structure.lean              # Translation subgroup, point group structure
+├── Groups/
+│   ├── Oblique.lean                # p1, p2
+│   ├── Rectangular.lean            # pm, pg, pmm, pmg, pgg
+│   ├── CenteredRectangular.lean    # cm, cmm
+│   ├── Square.lean                 # p4, p4m, p4g
+│   └── Hexagonal.lean              # p3, p3m1, p31m, p6, p6m
+└── Classification/
+    ├── Verification.lean           # Each group is a wallpaper group
+    ├── Distinctness.lean           # Groups are pairwise non-isomorphic
+    └── Completeness.lean           # Main theorem: exactly 17 groups
 ```
 
 ## References

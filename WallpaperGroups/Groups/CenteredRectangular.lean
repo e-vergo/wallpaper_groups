@@ -44,7 +44,8 @@ private lemma orthogonalActionHom_preserves_lattice {A : OrthogonalGroup2}
              AddEquiv.coe_toAddMonoidHom, LinearEquiv.coe_toAddEquiv]
   simp only [IsLatticePreserving] at hA
   have h := hA (Multiplicative.toAdd v) hv
-  simp at h
+  simp only [Matrix.UnitaryGroup.inv_val, LinearEquiv.coe_addEquiv_apply,
+    LinearEquiv.ofLinear_apply]
   exact h
 
 /-- The wallpaper group cm has reflections across one axis.
@@ -94,7 +95,7 @@ lemma WallpaperGroup.cm.isWallpaperGroup (hΛ : DihedralPointGroup 1 ≤ lattice
     obtain ⟨ε, hε_pos, hε_sep⟩ := Λ.isDiscrete 0 Λ.zero_mem
     use ε, hε_pos
     intro g hg hne
-    simp only [WallpaperGroup.cm, Subgroup.mem_mk, Set.mem_setOf_eq] at hg
+    simp only [WallpaperGroup.cm, Subgroup.mem_mk] at hg
     obtain ⟨htrans, _horth⟩ := hg
     by_cases hzero : Multiplicative.toAdd g.left = 0
     · -- If translation is 0, then g.right ≠ 1 (otherwise g = 1)
@@ -121,18 +122,19 @@ lemma WallpaperGroup.cm.isWallpaperGroup (hΛ : DihedralPointGroup 1 ≤ lattice
       -- Construct the group element (floor_val, 1)
       have hmem : (⟨Multiplicative.ofAdd floor_val, 1⟩ : EuclideanGroup2) ∈
           WallpaperGroup.cm Λ hΛ := by
-        simp only [WallpaperGroup.cm, Subgroup.mem_mk, Set.mem_setOf_eq,
-                   SemidirectProduct.mk, toAdd_ofAdd]
+        simp only [WallpaperGroup.cm, Subgroup.mem_mk]
         constructor
         · -- floor_val ∈ Λ
           have hfloor := (ZSpan.floor B.toBasis x).2
-          rw [Λ.carrier_eq_span B]
-          simp only [Submodule.mem_toAddSubgroup]
+          have hcarrier : Λ.carrier = (Submodule.span ℤ (Set.range B.toBasis)).toAddSubgroup :=
+            Λ.carrier_eq_span B
+          change floor_val ∈ Λ.carrier
+          rw [hcarrier]
           exact hfloor
         · exact (DihedralPointGroup 1).one_mem
       use ⟨Multiplicative.ofAdd floor_val, 1⟩, hmem
       -- x - floor_val ∈ parallelepiped
-      simp only [SemidirectProduct.mk, toAdd_ofAdd]
+      simp only [toAdd_ofAdd]
       have hfrac := ZSpan.fract_mem_fundamentalDomain B.toBasis x
       have hsub := ZSpan.fundamentalDomain_subset_parallelepiped B.toBasis hfrac
       convert hsub using 1
@@ -148,7 +150,7 @@ lemma WallpaperGroup.cm.isSymmorphic (hΛ : DihedralPointGroup 1 ≤ latticeSymm
       simp only [WallpaperGroup.cm, Subgroup.mem_mk]
       constructor
       · -- 0 ∈ Λ
-        simp only [EuclideanGroup2.mk, SemidirectProduct.mk, toAdd_ofAdd]
+        simp only [EuclideanGroup2.mk, toAdd_ofAdd]
         exact Λ.zero_mem
       · -- A ∈ D_1: this follows from A being in the point group of cm
         obtain ⟨v, hv⟩ := A.2
@@ -164,7 +166,7 @@ lemma WallpaperGroup.cm.isSymmorphic (hΛ : DihedralPointGroup 1 ≤ latticeSymm
       simp only [Subgroup.coe_mul, EuclideanGroup2.mk]
       apply SemidirectProduct.ext
       · -- left component
-        simp only [SemidirectProduct.mul_left, SemidirectProduct.mk, ofAdd_zero]
+        simp only [SemidirectProduct.mul_left, ofAdd_zero]
         simp only [orthogonalActionHom, orthogonalToMulAut, orthogonalToAddAut,
                    orthogonalToLinearEquiv, MonoidHom.coe_mk, OneHom.coe_mk, MulAutMultiplicative,
                    MulEquiv.symm_mk, MulEquiv.coe_mk, Equiv.symm_symm,
@@ -174,11 +176,10 @@ lemma WallpaperGroup.cm.isSymmorphic (hΛ : DihedralPointGroup 1 ≤ latticeSymm
                    AddEquiv.coe_toAddMonoidHom, LinearEquiv.coe_toAddEquiv,
                    toAdd_one, map_zero, ofAdd_zero, mul_one]
       · -- right component
-        simp only [SemidirectProduct.mul_right, SemidirectProduct.mk]
+        simp only [SemidirectProduct.mul_right]
   }
   use s
   intro A
-  simp only [EuclideanGroup2.mk, SemidirectProduct.mk]
   rfl
 
 /-- The point group of cm is D_1. -/
@@ -189,15 +190,14 @@ lemma WallpaperGroup.cm.pointGroup (hΛ : DihedralPointGroup 1 ≤ latticeSymmet
   -- Direction 2: if A ∈ D_1, then (0, A) ∈ cm (since 0 ∈ Λ), so A ∈ pointGroup cm
   have h_eq : WallpaperGroup.pointGroup (WallpaperGroup.cm Λ hΛ) = DihedralPointGroup 1 := by
     ext A
-    simp only [WallpaperGroup.pointGroup, Subgroup.mem_mk, Set.mem_setOf_eq]
+    simp only [WallpaperGroup.pointGroup, Subgroup.mem_mk]
     constructor
     · intro ⟨v, hv⟩
       simp only [WallpaperGroup.cm, Subgroup.mem_mk] at hv
       exact hv.2
     · intro hA
       use 0
-      simp only [WallpaperGroup.cm, Subgroup.mem_mk,
-                 EuclideanGroup2.mk, SemidirectProduct.mk, toAdd_ofAdd]
+      simp only [WallpaperGroup.cm, Subgroup.mem_mk, EuclideanGroup2.mk]
       exact ⟨Λ.zero_mem, hA⟩
   exact ⟨MulEquiv.subgroupCongr h_eq⟩
 
@@ -244,7 +244,7 @@ lemma WallpaperGroup.cmm.isWallpaperGroup (hΛ : DihedralPointGroup 2 ≤ lattic
     obtain ⟨ε, hε_pos, hε_sep⟩ := Λ.isDiscrete 0 Λ.zero_mem
     use ε, hε_pos
     intro g hg hne
-    simp only [WallpaperGroup.cmm, Subgroup.mem_mk, Set.mem_setOf_eq] at hg
+    simp only [WallpaperGroup.cmm, Subgroup.mem_mk] at hg
     obtain ⟨htrans, _horth⟩ := hg
     by_cases hzero : Multiplicative.toAdd g.left = 0
     · right
@@ -266,16 +266,17 @@ lemma WallpaperGroup.cmm.isWallpaperGroup (hΛ : DihedralPointGroup 2 ≤ lattic
       let floor_val := (ZSpan.floor B.toBasis x : EuclideanPlane)
       have hmem : (⟨Multiplicative.ofAdd floor_val, 1⟩ : EuclideanGroup2) ∈
           WallpaperGroup.cmm Λ hΛ := by
-        simp only [WallpaperGroup.cmm, Subgroup.mem_mk, Set.mem_setOf_eq,
-                   SemidirectProduct.mk, toAdd_ofAdd]
+        simp only [WallpaperGroup.cmm, Subgroup.mem_mk]
         constructor
         · have hfloor := (ZSpan.floor B.toBasis x).2
-          rw [Λ.carrier_eq_span B]
-          simp only [Submodule.mem_toAddSubgroup]
+          have hcarrier : Λ.carrier = (Submodule.span ℤ (Set.range B.toBasis)).toAddSubgroup :=
+            Λ.carrier_eq_span B
+          change floor_val ∈ Λ.carrier
+          rw [hcarrier]
           exact hfloor
         · exact (DihedralPointGroup 2).one_mem
       use ⟨Multiplicative.ofAdd floor_val, 1⟩, hmem
-      simp only [SemidirectProduct.mk, toAdd_ofAdd]
+      simp only [toAdd_ofAdd]
       have hfrac := ZSpan.fract_mem_fundamentalDomain B.toBasis x
       have hsub := ZSpan.fundamentalDomain_subset_parallelepiped B.toBasis hfrac
       convert hsub using 1
@@ -288,7 +289,7 @@ lemma WallpaperGroup.cmm.isSymmorphic (hΛ : DihedralPointGroup 2 ≤ latticeSym
     toFun := fun A => ⟨EuclideanGroup2.mk 0 A.1, by
       simp only [WallpaperGroup.cmm, Subgroup.mem_mk]
       constructor
-      · simp only [EuclideanGroup2.mk, SemidirectProduct.mk, toAdd_ofAdd]
+      · simp only [EuclideanGroup2.mk, toAdd_ofAdd]
         exact Λ.zero_mem
       · obtain ⟨v, hv⟩ := A.2
         simp only [WallpaperGroup.cmm, Subgroup.mem_mk] at hv
@@ -302,7 +303,7 @@ lemma WallpaperGroup.cmm.isSymmorphic (hΛ : DihedralPointGroup 2 ≤ latticeSym
       apply Subtype.ext
       simp only [Subgroup.coe_mul, EuclideanGroup2.mk]
       apply SemidirectProduct.ext
-      · simp only [SemidirectProduct.mul_left, SemidirectProduct.mk, ofAdd_zero]
+      · simp only [SemidirectProduct.mul_left, ofAdd_zero]
         simp only [orthogonalActionHom, orthogonalToMulAut, orthogonalToAddAut,
                    orthogonalToLinearEquiv, MonoidHom.coe_mk, OneHom.coe_mk, MulAutMultiplicative,
                    MulEquiv.symm_mk, MulEquiv.coe_mk, Equiv.symm_symm,
@@ -311,11 +312,10 @@ lemma WallpaperGroup.cmm.isSymmorphic (hΛ : DihedralPointGroup 2 ≤ latticeSym
         simp only [Equiv.coe_fn_mk, MonoidHom.coe_mk, OneHom.coe_mk,
                    AddEquiv.coe_toAddMonoidHom, LinearEquiv.coe_toAddEquiv,
                    toAdd_one, map_zero, ofAdd_zero, mul_one]
-      · simp only [SemidirectProduct.mul_right, SemidirectProduct.mk]
+      · simp only [SemidirectProduct.mul_right]
   }
   use s
   intro A
-  simp only [EuclideanGroup2.mk, SemidirectProduct.mk]
   rfl
 
 /-- The point group of cmm is D_2. -/
@@ -323,15 +323,14 @@ lemma WallpaperGroup.cmm.pointGroup (hΛ : DihedralPointGroup 2 ≤ latticeSymme
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.cmm Λ hΛ)) ≃* DihedralPointGroup 2) := by
   have h_eq : WallpaperGroup.pointGroup (WallpaperGroup.cmm Λ hΛ) = DihedralPointGroup 2 := by
     ext A
-    simp only [WallpaperGroup.pointGroup, Subgroup.mem_mk, Set.mem_setOf_eq]
+    simp only [WallpaperGroup.pointGroup, Subgroup.mem_mk]
     constructor
     · intro ⟨v, hv⟩
       simp only [WallpaperGroup.cmm, Subgroup.mem_mk] at hv
       exact hv.2
     · intro hA
       use 0
-      simp only [WallpaperGroup.cmm, Subgroup.mem_mk,
-                 EuclideanGroup2.mk, SemidirectProduct.mk, toAdd_ofAdd]
+      simp only [WallpaperGroup.cmm, Subgroup.mem_mk, EuclideanGroup2.mk]
       exact ⟨Λ.zero_mem, hA⟩
   exact ⟨MulEquiv.subgroupCongr h_eq⟩
 
@@ -363,91 +362,6 @@ lemma centeredRectangular_wallpaperGroups (Γ : Subgroup EuclideanGroup2) (hΓ :
   -- Since Γ is symmorphic, it splits as T ⋊ P where T = translation subgroup, P = point group
   -- The translation subgroup corresponds to the lattice Λ'
   -- So Γ ≅ {(v, A) | v ∈ Λ', A ∈ P} which is exactly cm or cmm depending on P
-  cases hPG with
-  | inl hP1 =>
-    -- Point group is D_1, so Γ ≅ cm
-    left
-    -- We construct the isomorphism explicitly
-    -- f : Γ → cm defined by g ↦ g (identity on underlying elements)
-    -- This works because membership conditions are equivalent
-    have hiso : ∀ g : EuclideanGroup2, g ∈ Γ ↔ g ∈ WallpaperGroup.cm Λ' hD1 := by
-      intro g
-      simp only [WallpaperGroup.cm, Subgroup.mem_mk, Set.mem_setOf_eq]
-      constructor
-      · intro hg
-        constructor
-        · -- g.left ∈ Λ' iff (g.left, 1) ∈ translationSubgroup Γ
-          -- For symmorphic groups, if g = (v, A) ∈ Γ then (v, 1) ∈ Γ (via section)
-          -- Actually we need: toAdd g.left ∈ Λ'
-          -- By hΛ': v ∈ Λ' ↔ (ofAdd v, 1) ∈ translationSubgroup Γ
-          -- The translation subgroup is Γ ⊓ T where T = {(v, 1)}
-          -- For wallpaper groups, the lattice is exactly the translation part
-          -- Since hSymm: there exists a section s : PG → Γ
-          -- For any (v, A) ∈ Γ, we have (v, A) * s(A⁻¹) = (v + A(0), 1) = (v, 1)
-          -- So (v, 1) ∈ Γ, hence v ∈ Λ'
-          obtain ⟨s, hs⟩ := hSymm
-          have hA_in_PG : g.right ∈ WallpaperGroup.pointGroup Γ := by
-            simp only [WallpaperGroup.pointGroup, Subgroup.mem_mk, Set.mem_setOf_eq]
-            use Multiplicative.toAdd g.left
-            simp only [EuclideanGroup2.mk, SemidirectProduct.mk, ofAdd_toAdd]
-            exact hg
-          let A_sub : WallpaperGroup.pointGroup Γ := ⟨g.right, hA_in_PG⟩
-          have hinv : A_sub⁻¹ ∈ WallpaperGroup.pointGroup Γ :=
-            (WallpaperGroup.pointGroup Γ).inv_mem A_sub.2
-          let Ainv_sub : WallpaperGroup.pointGroup Γ := ⟨g.right⁻¹, hinv⟩
-          have hprod : (⟨g, hg⟩ : Γ) * s Ainv_sub ∈ Γ := Γ.mul_mem hg (s Ainv_sub).2
-          -- The product g * s(A⁻¹) has right component = A * A⁻¹ = 1
-          have hright : (g * (s Ainv_sub).1).right = 1 := by
-            simp only [SemidirectProduct.mul_right]
-            have heq := hs Ainv_sub
-            simp only [Subtype.coe_mk] at heq
-            rw [heq]
-            exact mul_inv_cancel g.right
-          -- So it's a pure translation in Γ, hence in Λ'
-          have htrans_mem : (g * (s Ainv_sub).1) ∈ WallpaperGroup.translationSubgroup Γ := by
-            simp only [WallpaperGroup.translationSubgroup, Subgroup.mem_inf]
-            constructor
-            · exact hprod
-            · simp only [Euclidean.translationSubgroup, Subgroup.mem_mk, Set.mem_setOf_eq]
-              exact hright
-          -- Compute the left component
-          have hleft_eq : Multiplicative.toAdd (g * (s Ainv_sub).1).left =
-              Multiplicative.toAdd g.left + Multiplicative.toAdd ((orthogonalActionHom g.right)
-                (s Ainv_sub).1.left) := by
-            simp only [SemidirectProduct.mul_left, toAdd_mul]
-          -- (orthogonalActionHom g.right) maps (s A⁻¹).left to some value
-          -- s(A⁻¹) has left component = ofAdd 0 (from the section construction)
-          have hs_left : (s Ainv_sub).1.left = Multiplicative.ofAdd 0 := by
-            have heq := hs Ainv_sub
-            -- s A has right = A, so s A = (?, A)
-            -- From IsSymmorphic: (s A).right = A
-            -- But we need to know the left component is 0
-            -- This requires knowing s is the canonical section A ↦ (0, A)
-            -- Actually IsSymmorphic only guarantees the right component
-            -- We need more structure here...
-            -- For now, we use that the section exists and any section works for translations
-            sorry
-          sorry
-        · -- g.right ∈ D_1
-          have hA := hA_in_PG
-          rw [hP1] at hA
-          simp only [WallpaperGroup.pointGroup, Subgroup.mem_mk, Set.mem_setOf_eq] at hA
-          exact hA
-      · intro ⟨htrans, horth⟩
-        -- Need to show g ∈ Γ
-        -- Since Γ is symmorphic with point group D_1 and translations Λ'
-        -- g = (v, A) with v ∈ Λ' and A ∈ D_1
-        -- Using the section s : D_1 → Γ, we have s(A) ∈ Γ
-        -- Also (v, 1) ∈ Γ (as a translation)
-        -- So (v, 1) * s(A) = (v, A) ∈ Γ? No, that's not right...
-        -- Actually (v, 1) * (w, A) = (v + w, A) not (v, A)
-        -- We need (v, A) = (v - A(w), 1) * (w, A) where s(A) = (w, A)
-        -- Hmm, this is getting complicated. Need to think about this more carefully.
-        sorry
-    sorry
-  | inr hP2 =>
-    -- Point group is D_2, so Γ ≅ cmm
-    right
-    sorry
+  sorry
 
 end WallpaperGroups.Groups

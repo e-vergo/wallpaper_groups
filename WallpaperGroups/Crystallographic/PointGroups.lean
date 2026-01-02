@@ -328,7 +328,8 @@ lemma compatible_point_groups :
     -- The isomorphism sends A to some element of C₂
     -- We need to show A is actually in C₂ as a subgroup of O(2)
     -- This is a subtle point: we have an abstract isomorphism, not a concrete embedding
-    -- For now, we use sorry as this requires infrastructure about isomorphisms of concrete subgroups
+    -- For now, we use sorry as this requires infrastructure about
+    -- isomorphisms of concrete subgroups
     sorry
   case square =>
     intro Λ hΛ

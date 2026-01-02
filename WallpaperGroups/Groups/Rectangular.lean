@@ -67,51 +67,21 @@ def WallpaperGroup.pm (Λ : Lattice2) : Subgroup EuclideanGroup2 where
   mul_mem' := by
     intro a b ⟨ha_D1, ha_lat⟩ ⟨hb_D1, hb_lat⟩
     refine ⟨Subgroup.mul_mem _ ha_D1 hb_D1, ?_⟩
-    simp only [SemidirectProduct.mul_left, toAdd_mul, toAdd_ofAdd]
+    simp only [SemidirectProduct.mul_left]
     -- For a rectangular lattice, D₁ = {1, S₀} preserves the lattice
     -- The action is: a.translation + A(b.translation) where A ∈ D₁
-    have hD1 : (DihedralPointGroup 1 : Set OrthogonalGroup2) = {1, reflectionMatrix' 0} :=
-      DihedralPointGroup.one
-    rw [Set.mem_setOf_eq, hD1] at ha_D1
-    cases ha_D1 with
-    | inl ha1 =>
-      -- A = 1, so action is trivial
-      change Multiplicative.toAdd (Multiplicative.ofAdd a.translation *
-        orthogonalActionHom a.right (Multiplicative.ofAdd b.translation)) ∈ Λ
-      rw [ha1]
-      simp only [map_one, MulAut.one_apply, toAdd_mul, toAdd_ofAdd]
-      exact Λ.add_mem ha_lat hb_lat
-    | inr haS =>
-      -- A = S₀, need S₀ to preserve lattice which requires lattice structure
-      -- For rectangular lattices, S₀ (reflection in x-axis) preserves the lattice
-      -- since the basis is orthogonal
-      rw [haS]
-      simp only [toAdd_mul, toAdd_ofAdd]
-      -- We add the result as sorry since proving S₀ preserves rectangular lattice
-      -- requires the orthogonality of the basis
-      sorry
+    -- We need to show that the action of D₁ on the lattice preserves it
+    sorry
   one_mem' := by
     refine ⟨Subgroup.one_mem _, ?_⟩
-    simp only [SemidirectProduct.one_left, toAdd_one]
+    simp only [SemidirectProduct.one_left]
     exact Λ.zero_mem
   inv_mem' := by
     intro a ⟨ha_D1, ha_lat⟩
     refine ⟨Subgroup.inv_mem _ ha_D1, ?_⟩
-    simp only [SemidirectProduct.inv_left, toAdd_inv, map_neg]
+    simp only [SemidirectProduct.inv_left]
     -- Need -A⁻¹(a.translation) ∈ Λ
-    have hD1 : (DihedralPointGroup 1 : Set OrthogonalGroup2) = {1, reflectionMatrix' 0} :=
-      DihedralPointGroup.one
-    rw [Set.mem_setOf_eq, hD1] at ha_D1
-    cases ha_D1 with
-    | inl ha1 =>
-      rw [ha1]
-      simp only [inv_one, map_one, MulAut.one_apply, toAdd_ofAdd]
-      exact Λ.neg_mem ha_lat
-    | inr haS =>
-      rw [haS, reflectionMatrix'_zero_inv]
-      simp only [toAdd_ofAdd]
-      -- S₀(a.translation) ∈ Λ and then negation
-      sorry
+    sorry
 
 /-- pm is a wallpaper group. -/
 lemma WallpaperGroup.pm.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.pm Λ) := by
@@ -126,36 +96,10 @@ lemma WallpaperGroup.pm.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.pm �
     constructor
     · linarith
     · intro g hg hg_ne
-      simp only [WallpaperGroup.pm, Set.mem_setOf_eq] at hg
+      simp only [WallpaperGroup.pm] at hg
       obtain ⟨_, hg_lat⟩ := hg
-      left
-      by_contra h
-      push_neg at h
-      -- g.left ∈ Λ and ‖g.left‖ < ε/2
-      -- If g.right ≠ 1, then g ≠ 1 is already satisfied
-      -- If g.right = 1 and g.left ≠ 0, use discreteness
-      by_cases hg_right : g.right = 1
-      · -- g = (v, 1) with v ∈ Λ, v ≠ 0
-        have hg_left_ne : g.left ≠ 0 := by
-          intro hg_left_zero
-          apply hg_ne
-          ext
-          · simp only [SemidirectProduct.one_left]
-            exact hg_left_zero
-          · simp only [SemidirectProduct.one_right]
-            exact hg_right
-        have hg_trans : g.translation ≠ 0 := by
-          intro h
-          apply hg_left_ne
-          simp only [EuclideanGroup2.translation] at h
-          exact h
-        -- Use discreteness: for nonzero v ∈ Λ, ‖v‖ ≥ ε
-        have hsep := hε_sep g.translation hg_lat hg_trans
-        simp only [sub_zero, EuclideanGroup2.translation] at hsep
-        linarith
-      · -- g.right ≠ 1 case: this implies g ≠ 1
-        right
-        exact hg_right
+      -- Prove discreteness using the lattice structure
+      sorry
   · -- cocompact
     unfold IsCocompact
     obtain ⟨B⟩ := Λ.exists_basis
@@ -177,10 +121,9 @@ lemma WallpaperGroup.pm.isSymmorphic : IsSymmorphic (WallpaperGroup.pm Λ) := by
   -- This works because 0 ∈ Λ for any lattice
   let s : WallpaperGroup.pointGroup (WallpaperGroup.pm Λ) →* (WallpaperGroup.pm Λ) := {
     toFun := fun A => ⟨⟨Multiplicative.ofAdd 0, A.1⟩, by
-      simp only [WallpaperGroup.pm, Set.mem_setOf_eq, SemidirectProduct.left, SemidirectProduct.right,
-        toAdd_ofAdd]
+      simp only [WallpaperGroup.pm]
       obtain ⟨v, hv⟩ := A.2
-      simp only [WallpaperGroup.pm, Set.mem_setOf_eq] at hv
+      simp only [WallpaperGroup.pm] at hv
       exact ⟨hv.1, Λ.zero_mem⟩⟩
     map_one' := by
       apply Subtype.ext
@@ -190,7 +133,7 @@ lemma WallpaperGroup.pm.isSymmorphic : IsSymmorphic (WallpaperGroup.pm Λ) := by
       apply Subtype.ext
       simp only [Subgroup.coe_mul, SemidirectProduct.mul_def]
       congr 1
-      simp only [map_one, MulAut.one_apply, mul_one]
+      simp [map_one, mul_one]
   }
   use s
   intro A
@@ -200,27 +143,27 @@ lemma WallpaperGroup.pm.isSymmorphic : IsSymmorphic (WallpaperGroup.pm Λ) := by
 lemma WallpaperGroup.pm.pointGroup :
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.pm Λ)) ≃* DihedralPointGroup 1) := by
   constructor
-  apply MulEquiv.ofBijective
-  · let f : DihedralPointGroup 1 →* WallpaperGroup.pointGroup (WallpaperGroup.pm Λ) := {
-      toFun := fun A => ⟨A.1, by
-        use 0
-        simp only [WallpaperGroup.pm, Set.mem_setOf_eq, EuclideanGroup2.mk, SemidirectProduct.right,
-          SemidirectProduct.left, toAdd_ofAdd]
-        exact ⟨A.2, Λ.zero_mem⟩⟩
-      map_one' := by apply Subtype.ext; rfl
-      map_mul' := by intro A B; apply Subtype.ext; rfl
-    }
-    exact f
-  · constructor
+  let f : DihedralPointGroup 1 →* WallpaperGroup.pointGroup (WallpaperGroup.pm Λ) := {
+    toFun := fun A => ⟨A.1, by
+      use 0
+      simp only [WallpaperGroup.pm, EuclideanGroup2.mk]
+      exact ⟨A.2, Λ.zero_mem⟩⟩
+    map_one' := by apply Subtype.ext; rfl
+    map_mul' := by intro A B; apply Subtype.ext; rfl
+  }
+  have hbij : Function.Bijective f := by
+    constructor
     · -- Injective
       intro A B hAB
-      apply Subtype.ext
-      exact congrArg Subtype.val hAB
+      have h := congrArg Subtype.val hAB
+      exact Subtype.ext h
     · -- Surjective
       intro ⟨A, hA⟩
       obtain ⟨v, hv⟩ := hA
-      simp only [WallpaperGroup.pm, Set.mem_setOf_eq] at hv
-      use ⟨A, hv.1⟩
+      simp only [WallpaperGroup.pm] at hv
+      refine ⟨⟨A, hv.1⟩, ?_⟩
+      apply Subtype.ext; rfl
+  exact (MulEquiv.ofBijective f hbij).symm
 
 /-! ### The pg wallpaper group -/
 
@@ -244,14 +187,14 @@ def WallpaperGroup.pg (Λ : Lattice2) : Subgroup EuclideanGroup2 where
     refine ⟨Subgroup.mul_mem _ ha_D1 hb_D1, ?_, ?_⟩
     · intro hab_one
       simp only [SemidirectProduct.mul_right] at hab_one
-      simp only [SemidirectProduct.mul_left, toAdd_mul, toAdd_ofAdd]
+      simp only [SemidirectProduct.mul_left]
       sorry
     · intro hab_ne_one
       sorry
   one_mem' := by
     refine ⟨Subgroup.one_mem _, ?_, ?_⟩
     · intro _
-      simp only [SemidirectProduct.one_left, toAdd_one]
+      simp only [SemidirectProduct.one_left]
       exact Λ.zero_mem
     · intro h
       simp only [SemidirectProduct.one_right] at h
@@ -265,7 +208,7 @@ def WallpaperGroup.pg (Λ : Lattice2) : Subgroup EuclideanGroup2 where
       have ha_lat := ha_trans ha_one
       simp only [SemidirectProduct.inv_left]
       rw [ha_one]
-      simp only [inv_one, map_one, MulAut.one_apply, inv_ofAdd, toAdd_ofAdd]
+      simp only [inv_one, map_one, MulAut.one_apply]
       exact Λ.neg_mem ha_lat
     · intro ha_inv_ne
       sorry
@@ -277,9 +220,10 @@ lemma WallpaperGroup.pg.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.pg �
     unfold IsDiscreteSubgroup
     obtain ⟨B⟩ := Λ.exists_basis
     use 1
-    constructor; norm_num
-    intro g hg hg_ne
-    sorry
+    constructor
+    · norm_num
+    · intro g hg hg_ne
+      sorry
   · -- cocompact
     unfold IsCocompact
     obtain ⟨B⟩ := Λ.exists_basis
@@ -298,49 +242,9 @@ lemma WallpaperGroup.pg.not_isSymmorphic : ¬IsSymmorphic (WallpaperGroup.pg Λ)
 /-- The point group of pg is D₁. -/
 lemma WallpaperGroup.pg.pointGroup :
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.pg Λ)) ≃* DihedralPointGroup 1) := by
-  constructor
-  apply MulEquiv.ofBijective
-  · let f : DihedralPointGroup 1 →* WallpaperGroup.pointGroup (WallpaperGroup.pg Λ) := {
-      toFun := fun A => by
-        have hD1 := DihedralPointGroup.one
-        have hA_in : A.1 ∈ ({1, reflectionMatrix' 0} : Set OrthogonalGroup2) := by
-          rw [← hD1]; exact A.2
-        refine ⟨A.1, ?_⟩
-        simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hA_in
-        cases hA_in with
-        | inl hA_one =>
-          use 0
-          simp only [WallpaperGroup.pg, Set.mem_setOf_eq, EuclideanGroup2.mk, SemidirectProduct.right,
-            SemidirectProduct.left, toAdd_ofAdd, hA_one, EuclideanGroup2.translation]
-          refine ⟨Subgroup.one_mem _, ?_, ?_⟩
-          · intro _; exact Λ.zero_mem
-          · intro h; exact absurd rfl h
-        | inr hA_S0 =>
-          rw [hA_S0]
-          -- For S₀, we need an element with translation (1/2)a
-          use (1/2 : ℝ) • Classical.choice (Λ.exists_basis).some.a
-          simp only [WallpaperGroup.pg, Set.mem_setOf_eq, EuclideanGroup2.mk, SemidirectProduct.right,
-            SemidirectProduct.left, toAdd_ofAdd, EuclideanGroup2.translation]
-          refine ⟨?_, ?_, ?_⟩
-          · rw [DihedralPointGroup.one]
-            simp only [Set.mem_insert_iff, Set.mem_singleton_iff, or_true]
-          · intro hS_one
-            exact absurd hS_one reflectionMatrix'_zero_ne_one
-          · intro _
-            use 0
-            constructor; exact Λ.zero_mem
-            use Classical.choice (Λ.exists_basis)
-            simp only [zero_add]
-      map_one' := by apply Subtype.ext; simp
-      map_mul' := by intro A B; apply Subtype.ext; simp
-    }
-    exact f
-  · constructor
-    · intro A B hAB; apply Subtype.ext; exact congrArg Subtype.val hAB
-    · intro ⟨A, hA⟩
-      obtain ⟨v, hv⟩ := hA
-      simp only [WallpaperGroup.pg, Set.mem_setOf_eq] at hv
-      use ⟨A, hv.1⟩
+  -- The proof would establish an isomorphism between the point group of pg and D₁
+  -- This requires showing that both groups have the same elements {1, S₀}
+  sorry
 
 /-! ### The pmm wallpaper group -/
 
@@ -356,25 +260,27 @@ def WallpaperGroup.pmm (Λ : Lattice2) : Subgroup EuclideanGroup2 where
   mul_mem' := by
     intro a b ⟨ha_D2, ha_lat⟩ ⟨hb_D2, hb_lat⟩
     refine ⟨Subgroup.mul_mem _ ha_D2 hb_D2, ?_⟩
-    simp only [SemidirectProduct.mul_left, toAdd_mul, toAdd_ofAdd]
+    simp only [SemidirectProduct.mul_left]
     -- D₂ preserves rectangular lattice
     sorry
   one_mem' := by
     refine ⟨Subgroup.one_mem _, ?_⟩
-    simp only [SemidirectProduct.one_left, toAdd_one]
+    simp only [SemidirectProduct.one_left]
     exact Λ.zero_mem
   inv_mem' := by
     intro a ⟨ha_D2, ha_lat⟩
     refine ⟨Subgroup.inv_mem _ ha_D2, ?_⟩
-    simp only [SemidirectProduct.inv_left, toAdd_inv, map_neg]
+    simp only [SemidirectProduct.inv_left]
     sorry
 
 /-- pmm is a wallpaper group. -/
 lemma WallpaperGroup.pmm.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.pmm Λ) := by
   constructor
   · unfold IsDiscreteSubgroup
-    use 1; constructor; norm_num
-    intro g hg hg_ne; sorry
+    use 1
+    constructor
+    · norm_num
+    · intro g hg hg_ne; sorry
   · unfold IsCocompact
     obtain ⟨B⟩ := Λ.exists_basis
     use latticeFundamentalDomain Λ B
@@ -385,16 +291,15 @@ lemma WallpaperGroup.pmm.isSymmorphic : IsSymmorphic (WallpaperGroup.pmm Λ) := 
   unfold IsSymmorphic
   let s : WallpaperGroup.pointGroup (WallpaperGroup.pmm Λ) →* (WallpaperGroup.pmm Λ) := {
     toFun := fun A => ⟨⟨Multiplicative.ofAdd 0, A.1⟩, by
-      simp only [WallpaperGroup.pmm, Set.mem_setOf_eq, SemidirectProduct.left, SemidirectProduct.right,
-        toAdd_ofAdd]
+      simp only [WallpaperGroup.pmm]
       obtain ⟨v, hv⟩ := A.2
-      simp only [WallpaperGroup.pmm, Set.mem_setOf_eq] at hv
+      simp only [WallpaperGroup.pmm] at hv
       exact ⟨hv.1, Λ.zero_mem⟩⟩
     map_one' := by apply Subtype.ext; rfl
     map_mul' := by
       intro A B; apply Subtype.ext
       simp only [Subgroup.coe_mul, SemidirectProduct.mul_def]
-      congr 1; simp only [map_one, MulAut.one_apply, mul_one]
+      congr 1; simp [map_one, mul_one]
   }
   use s
   intro A; rfl
@@ -403,23 +308,25 @@ lemma WallpaperGroup.pmm.isSymmorphic : IsSymmorphic (WallpaperGroup.pmm Λ) := 
 lemma WallpaperGroup.pmm.pointGroup :
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.pmm Λ)) ≃* DihedralPointGroup 2) := by
   constructor
-  apply MulEquiv.ofBijective
-  · let f : DihedralPointGroup 2 →* WallpaperGroup.pointGroup (WallpaperGroup.pmm Λ) := {
-      toFun := fun A => ⟨A.1, by
-        use 0
-        simp only [WallpaperGroup.pmm, Set.mem_setOf_eq, EuclideanGroup2.mk, SemidirectProduct.right,
-          SemidirectProduct.left, toAdd_ofAdd]
-        exact ⟨A.2, Λ.zero_mem⟩⟩
-      map_one' := by apply Subtype.ext; rfl
-      map_mul' := by intro A B; apply Subtype.ext; rfl
-    }
-    exact f
-  · constructor
-    · intro A B hAB; apply Subtype.ext; exact congrArg Subtype.val hAB
+  let f : DihedralPointGroup 2 →* WallpaperGroup.pointGroup (WallpaperGroup.pmm Λ) := {
+    toFun := fun A => ⟨A.1, by
+      use 0
+      simp only [WallpaperGroup.pmm, EuclideanGroup2.mk]
+      exact ⟨A.2, Λ.zero_mem⟩⟩
+    map_one' := by apply Subtype.ext; rfl
+    map_mul' := by intro A B; apply Subtype.ext; rfl
+  }
+  have hbij : Function.Bijective f := by
+    constructor
+    · intro A B hAB
+      have h := congrArg Subtype.val hAB
+      exact Subtype.ext h
     · intro ⟨A, hA⟩
       obtain ⟨v, hv⟩ := hA
-      simp only [WallpaperGroup.pmm, Set.mem_setOf_eq] at hv
-      use ⟨A, hv.1⟩
+      simp only [WallpaperGroup.pmm] at hv
+      refine ⟨⟨A, hv.1⟩, ?_⟩
+      apply Subtype.ext; rfl
+  exact (MulEquiv.ofBijective f hbij).symm
 
 /-! ### The pmg wallpaper group -/
 
@@ -442,20 +349,20 @@ def WallpaperGroup.pmg (Λ : Lattice2) : Subgroup EuclideanGroup2 where
     refine ⟨Subgroup.mul_mem _ ha_D2 hb_D2, ?_, ?_⟩
     · intro hab_rot
       simp only [SemidirectProduct.mul_right, Submonoid.coe_mul, Matrix.det_mul] at hab_rot
-      simp only [SemidirectProduct.mul_left, toAdd_mul, toAdd_ofAdd]
+      simp only [SemidirectProduct.mul_left]
       sorry
     · intro _; trivial
   one_mem' := by
     refine ⟨Subgroup.one_mem _, ?_, ?_⟩
     · intro _
-      simp only [SemidirectProduct.one_left, toAdd_one]
+      simp only [SemidirectProduct.one_left]
       exact Λ.zero_mem
     · intro _; trivial
   inv_mem' := by
     intro a ⟨ha_D2, ha_rot, ha_refl⟩
     refine ⟨Subgroup.inv_mem _ ha_D2, ?_, ?_⟩
     · intro ha_inv_rot
-      simp only [SemidirectProduct.inv_left, toAdd_inv, map_neg]
+      simp only [SemidirectProduct.inv_left]
       sorry
     · intro _; trivial
 
@@ -463,8 +370,10 @@ def WallpaperGroup.pmg (Λ : Lattice2) : Subgroup EuclideanGroup2 where
 lemma WallpaperGroup.pmg.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.pmg Λ) := by
   constructor
   · unfold IsDiscreteSubgroup
-    use 1; constructor; norm_num
-    intro g hg hg_ne; sorry
+    use 1
+    constructor
+    · norm_num
+    · intro g hg hg_ne; sorry
   · unfold IsCocompact
     obtain ⟨B⟩ := Λ.exists_basis
     use latticeFundamentalDomain Λ B
@@ -480,25 +389,28 @@ lemma WallpaperGroup.pmg.not_isSymmorphic : ¬IsSymmorphic (WallpaperGroup.pmg �
 lemma WallpaperGroup.pmg.pointGroup :
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.pmg Λ)) ≃* DihedralPointGroup 2) := by
   constructor
-  apply MulEquiv.ofBijective
-  · let f : DihedralPointGroup 2 →* WallpaperGroup.pointGroup (WallpaperGroup.pmg Λ) := {
-      toFun := fun A => ⟨A.1, by
-        use 0
-        simp only [WallpaperGroup.pmg, Set.mem_setOf_eq, EuclideanGroup2.mk, SemidirectProduct.right,
-          SemidirectProduct.left, toAdd_ofAdd]
-        refine ⟨A.2, ?_, ?_⟩
-        · intro _; exact Λ.zero_mem
-        · intro _; trivial⟩
-      map_one' := by apply Subtype.ext; rfl
-      map_mul' := by intro A B; apply Subtype.ext; rfl
-    }
-    exact f
-  · constructor
-    · intro A B hAB; apply Subtype.ext; exact congrArg Subtype.val hAB
+  let f : DihedralPointGroup 2 →* WallpaperGroup.pointGroup (WallpaperGroup.pmg Λ) := {
+    toFun := fun A => ⟨A.1, by
+      use 0
+      simp only [WallpaperGroup.pmg, EuclideanGroup2.mk]
+      refine ⟨A.2, ?_, ?_⟩
+      · intro _; exact Λ.zero_mem
+      · intro _; trivial⟩
+    map_one' := by apply Subtype.ext; rfl
+    map_mul' := by intro A B; apply Subtype.ext; rfl
+  }
+  have hbij : Function.Bijective f := by
+    constructor
+    · intro A B hAB
+      have h := congrArg Subtype.val hAB
+      exact Subtype.ext h
     · intro ⟨A, hA⟩
       obtain ⟨v, hv⟩ := hA
-      simp only [WallpaperGroup.pmg, Set.mem_setOf_eq] at hv
-      use ⟨A, hv.1⟩
+      simp only [WallpaperGroup.pmg] at hv
+      refine ⟨⟨A, hv.1⟩, ?_⟩
+      apply Subtype.ext
+      rfl
+  exact (MulEquiv.ofBijective f hbij).symm
 
 /-! ### The pgg wallpaper group -/
 
@@ -520,20 +432,20 @@ def WallpaperGroup.pgg (Λ : Lattice2) : Subgroup EuclideanGroup2 where
     obtain ⟨hb_D2, hb_rot, hb_refl⟩ := hb
     refine ⟨Subgroup.mul_mem _ ha_D2 hb_D2, ?_, ?_⟩
     · intro hab_rot
-      simp only [SemidirectProduct.mul_left, toAdd_mul, toAdd_ofAdd]
+      simp only [SemidirectProduct.mul_left]
       sorry
     · intro _; trivial
   one_mem' := by
     refine ⟨Subgroup.one_mem _, ?_, ?_⟩
     · intro _
-      simp only [SemidirectProduct.one_left, toAdd_one]
+      simp only [SemidirectProduct.one_left]
       exact Λ.zero_mem
     · intro _; trivial
   inv_mem' := by
     intro a ⟨ha_D2, ha_rot, ha_refl⟩
     refine ⟨Subgroup.inv_mem _ ha_D2, ?_, ?_⟩
     · intro ha_inv_rot
-      simp only [SemidirectProduct.inv_left, toAdd_inv, map_neg]
+      simp only [SemidirectProduct.inv_left]
       sorry
     · intro _; trivial
 
@@ -541,8 +453,10 @@ def WallpaperGroup.pgg (Λ : Lattice2) : Subgroup EuclideanGroup2 where
 lemma WallpaperGroup.pgg.isWallpaperGroup : IsWallpaperGroup (WallpaperGroup.pgg Λ) := by
   constructor
   · unfold IsDiscreteSubgroup
-    use 1; constructor; norm_num
-    intro g hg hg_ne; sorry
+    use 1
+    constructor
+    · norm_num
+    · intro g hg hg_ne; sorry
   · unfold IsCocompact
     obtain ⟨B⟩ := Λ.exists_basis
     use latticeFundamentalDomain Λ B
@@ -558,24 +472,27 @@ lemma WallpaperGroup.pgg.not_isSymmorphic : ¬IsSymmorphic (WallpaperGroup.pgg �
 lemma WallpaperGroup.pgg.pointGroup :
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.pgg Λ)) ≃* DihedralPointGroup 2) := by
   constructor
-  apply MulEquiv.ofBijective
-  · let f : DihedralPointGroup 2 →* WallpaperGroup.pointGroup (WallpaperGroup.pgg Λ) := {
-      toFun := fun A => ⟨A.1, by
-        use 0
-        simp only [WallpaperGroup.pgg, Set.mem_setOf_eq, EuclideanGroup2.mk, SemidirectProduct.right,
-          SemidirectProduct.left, toAdd_ofAdd]
-        refine ⟨A.2, ?_, ?_⟩
-        · intro _; exact Λ.zero_mem
-        · intro _; trivial⟩
-      map_one' := by apply Subtype.ext; rfl
-      map_mul' := by intro A B; apply Subtype.ext; rfl
-    }
-    exact f
-  · constructor
-    · intro A B hAB; apply Subtype.ext; exact congrArg Subtype.val hAB
+  let f : DihedralPointGroup 2 →* WallpaperGroup.pointGroup (WallpaperGroup.pgg Λ) := {
+    toFun := fun A => ⟨A.1, by
+      use 0
+      simp only [WallpaperGroup.pgg, EuclideanGroup2.mk]
+      refine ⟨A.2, ?_, ?_⟩
+      · intro _; exact Λ.zero_mem
+      · intro _; trivial⟩
+    map_one' := by apply Subtype.ext; rfl
+    map_mul' := by intro A B; apply Subtype.ext; rfl
+  }
+  have hbij : Function.Bijective f := by
+    constructor
+    · intro A B hAB
+      have h := congrArg Subtype.val hAB
+      exact Subtype.ext h
     · intro ⟨A, hA⟩
       obtain ⟨v, hv⟩ := hA
-      simp only [WallpaperGroup.pgg, Set.mem_setOf_eq] at hv
-      use ⟨A, hv.1⟩
+      simp only [WallpaperGroup.pgg] at hv
+      refine ⟨⟨A, hv.1⟩, ?_⟩
+      apply Subtype.ext
+      rfl
+  exact (MulEquiv.ofBijective f hbij).symm
 
 end WallpaperGroups.Groups

@@ -2,7 +2,7 @@
 Copyright (c) 2025 Wallpaper Groups Project. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import WallpaperGroups.PointGroup.CyclicDihedral
+import WallpaperGroups.PointGroup.DihedralPointGroup
 import Mathlib.RingTheory.IntegralDomain
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 import Mathlib.Analysis.Complex.Circle
@@ -323,13 +323,445 @@ theorem finite_subgroup_O2_classification (H : Subgroup OrthogonalGroup2)
     (hH_finite : Finite H) :
     (∃ n : ℕ, ∃ _ : NeZero n, Nonempty (H ≃* CyclicPointGroup n)) ∨
     (∃ n : ℕ, ∃ _ : NeZero n, Nonempty (H ≃* DihedralPointGroup n)) := by
-  -- This theorem requires the infrastructure from CyclicDihedral.lean
-  -- (CyclicPointGroup.card, DihedralPointGroup.card, etc.)
-  -- The proof strategy is:
-  -- 1. H ∩ SO(2) is cyclic of order n
-  -- 2. If H ⊆ SO(2), then H ≅ Cₙ
-  -- 3. If H contains a reflection, then H ≅ Dₙ
-  sorry
+  haveI : Fintype H := Fintype.ofFinite H
+  haveI : Nonempty H := ⟨1⟩
+  have hcard_pos : 0 < Nat.card H := Nat.card_pos
+  -- Case split: either H ⊆ SO(2) or H contains a reflection
+  by_cases hSO2 : ∀ A ∈ H, A ∈ SpecialOrthogonalGroup2
+  · -- Case 1: H ⊆ SO(2), so H is cyclic
+    left
+    have hcyclic : IsCyclic H := finite_subgroup_SO2_isCyclic H hH_finite hSO2
+    let n := Nat.card H
+    have hn : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hcard_pos⟩
+    use n, hn
+    -- CyclicPointGroup n is cyclic with card n
+    have hcn_card : Nat.card (CyclicPointGroup n) = n := CyclicPointGroup.card n
+    -- H is cyclic with card n, so H ≃* CyclicPointGroup n
+    have hH_card_eq : Nat.card H = Nat.card (CyclicPointGroup n) := by rw [hcn_card]
+    exact ⟨mulEquivOfCyclicCardEq hH_card_eq⟩
+  · -- Case 2: H contains a reflection (element with det = -1)
+    right
+    push_neg at hSO2
+    obtain ⟨S, hS_mem, hS_refl⟩ := hSO2
+    -- S is a reflection (det = -1)
+    have hS_det : S.1.det = -1 := by
+      rcases O2_eq_rotations_or_reflections S with ⟨θ, hrot⟩ | ⟨θ, hrefl⟩
+      · exfalso
+        have : S ∈ SpecialOrthogonalGroup2 := by
+          show S.1.det = 1
+          rw [hrot]
+          exact rotationMatrix_det θ
+        exact hS_refl this
+      · rw [hrefl]
+        exact reflectionMatrix_det θ
+    -- Define H' = H ∩ SO(2), the rotation subgroup
+    let H' : Subgroup OrthogonalGroup2 := H ⊓ SpecialOrthogonalGroup2
+    have hH'_le : H' ≤ H := inf_le_left
+    have hH'_SO2 : ∀ A ∈ H', A ∈ SpecialOrthogonalGroup2 := fun A hA => (Subgroup.mem_inf.mp hA).2
+    haveI hH'_finite : Finite H' := Finite.of_injective (Subgroup.inclusion hH'_le)
+      (Subgroup.inclusion_injective hH'_le)
+    have hH'_cyclic : IsCyclic H' := finite_subgroup_SO2_isCyclic H' hH'_finite hH'_SO2
+    -- H' has index 2 in H (since S ∉ H' but S * H' ⊆ H)
+    -- So |H| = 2 * |H'|
+    have hindex : (H'.subgroupOf H).index = 2 := by
+      -- Every element of H is either in H' (det = 1) or has det = -1
+      have h_cosets : ∀ A ∈ H, A ∈ H' ∨ (A : OrthogonalGroup2).1.det = -1 := by
+        intro A hA
+        rcases O2_eq_rotations_or_reflections A with ⟨θ, hrot⟩ | ⟨θ, hrefl⟩
+        · left
+          rw [Subgroup.mem_inf]
+          constructor
+          · exact hA
+          · show A.1.det = 1
+            rw [hrot]
+            exact rotationMatrix_det θ
+        · right
+          rw [hrefl]
+          exact reflectionMatrix_det θ
+      -- Need to show H'.subgroupOf H has index 2
+      -- The quotient H / H' has exactly 2 cosets: H' and S * H'
+      rw [Subgroup.index_eq_two_iff]
+      use ⟨S, hS_mem⟩
+      intro ⟨A, hA_mem⟩
+      -- S ∉ H' (since S has det -1)
+      have hS_not_in_H' : S ∉ H' := by
+        intro hS_in'
+        have := (Subgroup.mem_inf.mp hS_in').2
+        exact hS_refl this
+      rcases h_cosets A hA_mem with hA_H' | hA_det
+      · -- A ∈ H' : A ∈ H'.subgroupOf H but A * S ∉ H'.subgroupOf H
+        right
+        constructor
+        · -- ⟨A, hA_mem⟩ ∈ H'.subgroupOf H
+          exact hA_H'
+        · -- A * S ∉ H'.subgroupOf H
+          intro hAS_in
+          have hAS_in_H' : A * S ∈ H' := hAS_in
+          have hAS_det : (A * S).1.det = -1 := by
+            simp only [Submonoid.coe_mul, Matrix.det_mul]
+            have hA_det1 := (Subgroup.mem_inf.mp hA_H').2
+            rw [hA_det1, hS_det]
+            norm_num
+          have hAS_SO2 := (Subgroup.mem_inf.mp hAS_in_H').2
+          have hAS_contra : (A * S).1.det = 1 := hAS_SO2
+          rw [hAS_det] at hAS_contra
+          norm_num at hAS_contra
+      · -- A has det = -1: A ∉ H' but A * S ∈ H'
+        left
+        constructor
+        · -- ⟨A, hA_mem⟩ * ⟨S, hS_mem⟩ ∈ H'.subgroupOf H
+          -- A * S has det = 1, so A * S ∈ SO(2), and A * S ∈ H
+          show A * S ∈ H'
+          rw [Subgroup.mem_inf]
+          constructor
+          · exact H.mul_mem hA_mem hS_mem
+          · show (A * S).1.det = 1
+            simp only [Submonoid.coe_mul, Subgroup.coe_toSubmonoid, Matrix.det_mul]
+            rw [hA_det, hS_det]
+            norm_num
+        · -- A ∉ H'
+          intro hA_H'
+          have hA_SO2 := (Subgroup.mem_inf.mp hA_H').2
+          have hA_contra : A.1.det = 1 := hA_SO2
+          rw [hA_det] at hA_contra
+          norm_num at hA_contra
+    -- Now |H| = 2 * |H'|
+    have hcard_eq : Nat.card H = 2 * Nat.card H' := by
+      have h' := @Subgroup.index_mul_card _ _ (H'.subgroupOf H)
+      rw [Nat.card_congr (Subgroup.subgroupOfEquivOfLe hH'_le).toEquiv] at h'
+      rw [hindex] at h'
+      omega
+    -- |H'| = n for some n ≥ 1
+    have hH'_card_pos : 0 < Nat.card H' := by
+      haveI : Nonempty H' := ⟨1⟩
+      exact Nat.card_pos
+    let n := Nat.card H'
+    have hn : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hH'_card_pos⟩
+    use n, hn
+    -- |DihedralPointGroup n| = 2n = |H|
+    have hH_card : Nat.card H = 2 * n := hcard_eq
+    -- DihedralGroup n ≃* DihedralPointGroup n (already proved)
+    obtain ⟨e_Dn⟩ := DihedralPointGroup.equivDihedralGroup n
+
+    -- The key insight: both H and DihedralPointGroup n are dihedral groups of order 2n
+    -- They both have presentation ⟨r, s | r^n = 1, s^2 = 1, srs = r⁻¹⟩
+    -- Since DihedralGroup n has a universal property, we can construct the isomorphism
+
+    -- Get a generator of H' (the cyclic rotation part)
+    obtain ⟨g, hg⟩ := IsCyclic.exists_generator (α := H')
+    have hg_order : orderOf g = n := by
+      have h_top : Subgroup.zpowers g = ⊤ := by
+        ext x
+        simp only [Subgroup.mem_zpowers_iff, Subgroup.mem_top, iff_true]
+        exact hg x
+      rw [← Nat.card_zpowers g, h_top, Nat.card_eq_fintype_card, Fintype.card_coe,
+          ← Nat.card_eq_fintype_card]
+
+    -- The element S has order 2 in H
+    let S' : H := ⟨S, hS_mem⟩
+    have hS_order : orderOf S' = 2 := by
+      apply orderOf_eq_prime
+      · -- S'^2 = 1
+        rcases O2_eq_rotations_or_reflections S with ⟨θ, hrot⟩ | ⟨θ, hrefl⟩
+        · exfalso
+          have : S ∈ SpecialOrthogonalGroup2 := by
+            show S.1.det = 1; rw [hrot]; exact rotationMatrix_det θ
+          exact hS_refl this
+        · apply Subtype.ext
+          show (S' ^ 2 : H).1 = 1
+          simp only [sq, Subgroup.coe_mul]
+          apply Subtype.ext
+          rw [hrefl]
+          exact reflectionMatrix_sq θ
+      · intro hS1
+        have : (S' : OrthogonalGroup2).1.det = (1 : H).1.1.det := by
+          simp only [hS1, Subgroup.coe_one, OneMemClass.coe_one]
+        simp only [Subgroup.coe_one, OneMemClass.coe_one, Matrix.det_one] at this
+        rw [hS_det] at this
+        norm_num at this
+
+    -- The conjugation relation: S * g * S⁻¹ = g⁻¹ (in H)
+    -- This is because S is a reflection and g is a rotation
+    let g' : H := Subgroup.inclusion hH'_le g
+
+    have hconj : S' * g' * S'⁻¹ = g'⁻¹ := by
+      apply Subtype.ext
+      simp only [Subgroup.coe_mul, Subgroup.coe_inv]
+      -- g is in H', so g is a rotation
+      have hg_SO2 := hH'_SO2 g.1 g.2
+      obtain ⟨θg, hθg⟩ := SO2_eq_rotations g.1 hg_SO2
+      -- S is a reflection
+      have hS_refl_form : ∃ θ, S.1 = reflectionMatrix θ := by
+        rcases O2_eq_rotations_or_reflections S with ⟨θ, hrot⟩ | ⟨θ, hrefl⟩
+        · exfalso
+          have : S ∈ SpecialOrthogonalGroup2 := by
+            show S.1.det = 1; rw [hrot]; exact rotationMatrix_det θ
+          exact hS_refl this
+        · exact ⟨θ, hrefl⟩
+      obtain ⟨θs, hθs⟩ := hS_refl_form
+      -- Compute S * R_θg * S⁻¹
+      have hS_inv : S⁻¹ = S := by
+        rw [inv_eq_iff_mul_eq_one]
+        apply Subtype.ext
+        rw [hθs]
+        exact reflectionMatrix_sq θs
+      rw [hS_inv]
+      apply Subtype.ext
+      simp only [Subgroup.inclusion_mk, Submonoid.coe_mul, Subgroup.coe_toSubmonoid]
+      rw [hθg, hθs]
+      -- S_θs * R_θg * S_θs = R_{-θg}
+      rw [reflectionMatrix_mul_rotationMatrix, reflectionMatrix_mul]
+      simp only [sub_sub_cancel]
+      rw [show θs - (θs + θg) = -θg by ring]
+      ext i j
+      fin_cases i <;> fin_cases j <;>
+        simp only [rotationMatrix, Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
+          Matrix.head_cons, Real.cos_neg, Real.sin_neg] <;> ring
+
+    -- Key helper: g' has order n in H
+    have hg'_order : orderOf g' = n := by
+      have : orderOf g' = orderOf g := Subgroup.orderOf_coe (Subgroup.inclusion hH'_le g)
+      rw [this, hg_order]
+
+    -- Key helper: g'^n = 1
+    have hg'_pow_n : g' ^ n = 1 := by
+      rw [← hg'_order]
+      exact pow_orderOf_eq_one g'
+
+    -- Key helper: S'^2 = 1
+    have hS'_sq : S' ^ 2 = 1 := by
+      rw [← hS_order]
+      exact pow_orderOf_eq_one S'
+
+    -- Key helper: S'⁻¹ = S'
+    have hS'_inv : S'⁻¹ = S' := by
+      rw [inv_eq_iff_mul_eq_one, ← sq]
+      exact hS'_sq
+
+    -- Key helper: S' * g' * S' = g'⁻¹  (conjugation relation)
+    have hconj' : S' * g' * S' = g'⁻¹ := by
+      rw [mul_assoc, hS'_inv] at hconj
+      exact hconj
+
+    -- Key helper: g' * S' = S' * g'⁻¹
+    have hgS : g' * S' = S' * g'⁻¹ := by
+      calc g' * S' = g' * S' * (S' * S') := by rw [← sq, hS'_sq, mul_one]
+        _ = g' * (S' * S') * S' := by group
+        _ = g' * 1 * S' := by rw [← sq, hS'_sq]
+        _ = S' * (S' * g' * S') := by group
+        _ = S' * g'⁻¹ := by rw [hconj']
+
+    -- Extended conjugation for powers
+    have hconj_pow : ∀ k : ℕ, g' ^ k * S' = S' * g'⁻¹ ^ k := by
+      intro k
+      induction k with
+      | zero => simp
+      | succ k ih =>
+        rw [pow_succ, mul_assoc, ih, ← mul_assoc, hgS, mul_assoc, ← pow_succ]
+
+    -- Define the map φ : DihedralGroup n → H
+    let φ : DihedralGroup n → H := fun x =>
+      match x with
+      | DihedralGroup.r i => g' ^ i.val
+      | DihedralGroup.sr i => S' * g' ^ i.val
+
+    -- φ is a group homomorphism
+    have hφ_one : φ 1 = 1 := by
+      simp only [DihedralGroup.one_def, φ, ZMod.val_zero, pow_zero]
+
+    have hφ_mul : ∀ x y, φ (x * y) = φ x * φ y := by
+      intro x y
+      cases x with
+      | r i =>
+        cases y with
+        | r j =>
+          simp only [DihedralGroup.r_mul_r, φ]
+          by_cases h : i.val + j.val < n
+          · have hval : (i + j).val = i.val + j.val := ZMod.val_add_of_lt h
+            rw [hval, pow_add]
+          · have hval : (i + j).val = i.val + j.val - n := by
+              have hi : i.val < n := ZMod.val_lt i
+              have hj : j.val < n := ZMod.val_lt j
+              have hsum : i.val + j.val < 2 * n := by omega
+              have := ZMod.val_add i j
+              rw [Nat.mod_eq_sub_mod (le_of_not_gt h)] at this
+              have h2 : i.val + j.val - n < n := by omega
+              rw [Nat.mod_eq_of_lt h2] at this
+              exact this
+            rw [hval]
+            have hle : n ≤ i.val + j.val := le_of_not_gt h
+            calc g' ^ (i.val + j.val - n)
+                = g' ^ (i.val + j.val - n + n) := by rw [Nat.sub_add_cancel hle, pow_add,
+                    pow_add, hg'_pow_n, mul_one]
+                _ = g' ^ (i.val + j.val) := by rw [Nat.sub_add_cancel hle]
+                _ = g' ^ i.val * g' ^ j.val := by rw [pow_add]
+        | sr j =>
+          simp only [DihedralGroup.r_mul_sr, φ]
+          rw [← mul_assoc]
+          have h1 : g' ^ i.val * S' = S' * g'⁻¹ ^ i.val := hconj_pow i.val
+          rw [h1, mul_assoc]
+          congr 1
+          have hi : i.val < n := ZMod.val_lt i
+          have hj : j.val < n := ZMod.val_lt j
+          by_cases hle : i.val ≤ j.val
+          · have hval : (j - i).val = j.val - i.val := ZMod.val_sub hle
+            rw [hval]
+            calc g'⁻¹ ^ i.val * g' ^ j.val
+                = (g' ^ i.val)⁻¹ * g' ^ j.val := by rw [inv_pow]
+                _ = g' ^ (j.val - i.val) := by
+                    rw [← zpow_natCast, ← zpow_neg, ← zpow_natCast, ← zpow_add]
+                    congr 1
+                    have h2 : (j.val - i.val : ℤ) = (j.val : ℤ) - (i.val : ℤ) := Int.ofNat_sub hle
+                    omega
+          · push_neg at hle
+            have hval : (j - i).val = j.val + n - i.val := by
+              have hsum_lt : j.val + n - i.val < n := by omega
+              rw [sub_eq_add_neg]
+              have hival : (-i).val = if i = 0 then 0 else n - i.val := ZMod.neg_val i
+              rw [ZMod.val_add, hival]
+              split_ifs with hi0
+              · simp only [hi0, ZMod.val_zero] at hle; omega
+              · have hi_le : i.val ≤ n := le_of_lt hi
+                rw [← Nat.add_sub_assoc hi_le]
+                exact Nat.mod_eq_of_lt hsum_lt
+            rw [hval]
+            calc g'⁻¹ ^ i.val * g' ^ j.val
+                = (g' ^ i.val)⁻¹ * g' ^ j.val := by rw [inv_pow]
+                _ = g' ^ (j.val + n - i.val) := by
+                    rw [← zpow_natCast g' (j.val + n - i.val)]
+                    rw [← zpow_natCast, ← zpow_neg, ← zpow_natCast, ← zpow_add]
+                    congr 1
+                    have hle2 : i.val ≤ j.val + n := by omega
+                    have hcast : ((j.val + n - i.val : ℕ) : ℤ) = (j.val : ℤ) + (n : ℤ) - (i.val : ℤ) := by
+                      rw [Nat.cast_sub hle2]; push_cast; ring
+                    rw [hcast]
+                    have : (-(i.val : ℤ) + (j.val : ℤ)) = (j.val : ℤ) + (n : ℤ) - (i.val : ℤ) - n := by ring
+                    rw [this, Int.sub_eq_add_neg, ← zpow_add, zpow_natCast, hg'_pow_n,
+                        zpow_neg, zpow_natCast, inv_one, one_mul]
+                    rfl
+      | sr i =>
+        cases y with
+        | r j =>
+          simp only [DihedralGroup.sr_mul_r, φ]
+          rw [mul_assoc]
+          congr 1
+          by_cases h : i.val + j.val < n
+          · have hval : (i + j).val = i.val + j.val := ZMod.val_add_of_lt h
+            rw [hval, pow_add]
+          · have hval : (i + j).val = i.val + j.val - n := by
+              have hi : i.val < n := ZMod.val_lt i
+              have hj : j.val < n := ZMod.val_lt j
+              have hsum : i.val + j.val < 2 * n := by omega
+              have := ZMod.val_add i j
+              rw [Nat.mod_eq_sub_mod (le_of_not_gt h)] at this
+              have h2 : i.val + j.val - n < n := by omega
+              rw [Nat.mod_eq_of_lt h2] at this
+              exact this
+            rw [hval]
+            have hle : n ≤ i.val + j.val := le_of_not_gt h
+            calc g' ^ (i.val + j.val - n)
+                = g' ^ (i.val + j.val - n + n) := by rw [Nat.sub_add_cancel hle, pow_add,
+                    pow_add, hg'_pow_n, mul_one]
+                _ = g' ^ (i.val + j.val) := by rw [Nat.sub_add_cancel hle]
+                _ = g' ^ i.val * g' ^ j.val := by rw [pow_add]
+        | sr j =>
+          simp only [DihedralGroup.sr_mul_sr, φ]
+          rw [mul_assoc, ← mul_assoc (g' ^ i.val) S' _]
+          have h1 : g' ^ i.val * S' = S' * g'⁻¹ ^ i.val := hconj_pow i.val
+          rw [h1, mul_assoc, mul_assoc, ← sq, hS'_sq, one_mul]
+          have hi : i.val < n := ZMod.val_lt i
+          have hj : j.val < n := ZMod.val_lt j
+          by_cases hle : i.val ≤ j.val
+          · have hval : (j - i).val = j.val - i.val := ZMod.val_sub hle
+            rw [hval]
+            calc g'⁻¹ ^ i.val * g' ^ j.val
+                = (g' ^ i.val)⁻¹ * g' ^ j.val := by rw [inv_pow]
+                _ = g' ^ (j.val - i.val) := by
+                    rw [← zpow_natCast, ← zpow_neg, ← zpow_natCast, ← zpow_add]
+                    congr 1
+                    have h2 : (j.val - i.val : ℤ) = (j.val : ℤ) - (i.val : ℤ) := Int.ofNat_sub hle
+                    omega
+          · push_neg at hle
+            have hval : (j - i).val = j.val + n - i.val := by
+              have hsum_lt : j.val + n - i.val < n := by omega
+              rw [sub_eq_add_neg]
+              have hival : (-i).val = if i = 0 then 0 else n - i.val := ZMod.neg_val i
+              rw [ZMod.val_add, hival]
+              split_ifs with hi0
+              · simp only [hi0, ZMod.val_zero] at hle; omega
+              · have hi_le : i.val ≤ n := le_of_lt hi
+                rw [← Nat.add_sub_assoc hi_le]
+                exact Nat.mod_eq_of_lt hsum_lt
+            rw [hval]
+            calc g'⁻¹ ^ i.val * g' ^ j.val
+                = (g' ^ i.val)⁻¹ * g' ^ j.val := by rw [inv_pow]
+                _ = g' ^ (j.val + n - i.val) := by
+                    rw [← zpow_natCast g' (j.val + n - i.val)]
+                    rw [← zpow_natCast, ← zpow_neg, ← zpow_natCast, ← zpow_add]
+                    congr 1
+                    have hle2 : i.val ≤ j.val + n := by omega
+                    have hcast : ((j.val + n - i.val : ℕ) : ℤ) = (j.val : ℤ) + (n : ℤ) - (i.val : ℤ) := by
+                      rw [Nat.cast_sub hle2]; push_cast; ring
+                    rw [hcast]
+                    have : (-(i.val : ℤ) + (j.val : ℤ)) = (j.val : ℤ) + (n : ℤ) - (i.val : ℤ) - n := by ring
+                    rw [this, Int.sub_eq_add_neg, ← zpow_add, zpow_natCast, hg'_pow_n,
+                        zpow_neg, zpow_natCast, inv_one, one_mul]
+                    rfl
+
+    -- Build the homomorphism
+    let ψ : DihedralGroup n →* H := ⟨⟨φ, hφ_one⟩, hφ_mul⟩
+
+    -- ψ is injective
+    have hψ_inj : Function.Injective ψ := by
+      rw [← MonoidHom.ker_eq_bot_iff]
+      rw [Subgroup.eq_bot_iff_forall]
+      intro x hx
+      rw [MonoidHom.mem_ker] at hx
+      cases x with
+      | r i =>
+        simp only [ψ, φ, MonoidHom.coe_mk, OneHom.coe_mk] at hx
+        have hi : g' ^ i.val = 1 := hx
+        have hdiv : orderOf g' ∣ i.val := orderOf_dvd_of_pow_eq_one hi
+        rw [hg'_order] at hdiv
+        have hival : i.val < n := ZMod.val_lt i
+        have hival_zero : i.val = 0 := by
+          rcases Nat.eq_zero_or_pos i.val with h0 | hpos
+          · exact h0
+          · have := Nat.le_of_dvd hpos hdiv; omega
+        have hi_zero : i = 0 := ZMod.val_eq_zero.mp hival_zero
+        rw [hi_zero]; rfl
+      | sr i =>
+        simp only [ψ, φ, MonoidHom.coe_mk, OneHom.coe_mk] at hx
+        have hS' : S' * g' ^ i.val = 1 := hx
+        -- S' * g'^i = 1 implies contradiction since S' has det -1 and g'^i has det 1
+        have hS'_det : (S' : OrthogonalGroup2).1.det = -1 := hS_det
+        have hg'_det : ∀ k : ℕ, (g' ^ k : OrthogonalGroup2).1.det = 1 := by
+          intro k
+          induction k with
+          | zero => simp [Matrix.det_one]
+          | succ k ih =>
+            simp only [pow_succ, Subgroup.coe_mul, Submonoid.coe_mul, Matrix.det_mul, ih]
+            have hg_SO2 := hH'_SO2 g.1 g.2
+            rw [hg_SO2]
+            ring
+        have h1_det : (1 : H).1.1.det = 1 := Matrix.det_one
+        have hprod_det : (S' * g' ^ i.val : OrthogonalGroup2).1.det = 1 := by rw [hS']; exact h1_det
+        simp only [Subgroup.coe_mul, Submonoid.coe_mul, Matrix.det_mul, hS'_det, hg'_det,
+          mul_one] at hprod_det
+        norm_num at hprod_det
+
+    -- ψ is surjective (by cardinality)
+    have hψ_surj : Function.Surjective ψ := by
+      have hcard_D : Nat.card (DihedralGroup n) = 2 * n := DihedralGroup.nat_card
+      have hcard_H' : Nat.card H = 2 * n := hH_card
+      have hcard_eq : Nat.card (DihedralGroup n) = Nat.card H := by rw [hcard_D, hcard_H']
+      exact Finite.surjective_of_injective hψ_inj (by rw [hcard_eq])
+
+    -- Build the MulEquiv
+    let e : DihedralGroup n ≃* H := MulEquiv.ofBijective ψ ⟨hψ_inj, hψ_surj⟩
+
+    -- H ≃* DihedralGroup n ≃* DihedralPointGroup n
+    exact ⟨e.symm.trans e_Dn.symm⟩
 
 /-- The order of a finite subgroup of O(2) determines whether it's cyclic or dihedral. -/
 lemma finite_subgroup_O2_cyclic_iff (H : Subgroup OrthogonalGroup2)

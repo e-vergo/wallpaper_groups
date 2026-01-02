@@ -265,16 +265,138 @@ def WallpaperGroup.p2 : Subgroup EuclideanGroup2 where
 /-- p2 is a wallpaper group. -/
 lemma WallpaperGroup.p2.isWallpaperGroup :
     IsWallpaperGroup (WallpaperGroup.p2 Λ) := by
-  sorry
+  constructor
+  · -- IsDiscreteSubgroup
+    rw [IsDiscreteSubgroup]
+    have h := Λ.isDiscrete 0 Λ.zero_mem
+    obtain ⟨ε, hε_pos, hε_sep⟩ := h
+    use ε, hε_pos
+    intro g ⟨hg_right, hg_left⟩ hg_ne_1
+    -- Either g.left ≠ 0 (and g.right = 1 or R_π), or g.right ≠ 1
+    by_cases hg_r : g.right = 1
+    · -- g.right = 1, so g.left must be nonzero
+      left
+      have hgL_ne : Multiplicative.toAdd g.left ≠ 0 := by
+        intro h
+        apply hg_ne_1
+        simp only [SemidirectProduct.ext_iff, SemidirectProduct.one_left,
+                   SemidirectProduct.one_right, hg_r, and_true]
+        exact Multiplicative.toAdd.injective h
+      have := hε_sep (Multiplicative.toAdd g.left) hg_left hgL_ne
+      rw [sub_zero] at this
+      exact this
+    · -- g.right ≠ 1
+      right
+      exact hg_r
+  · -- IsCocompact
+    rw [IsCocompact]
+    obtain ⟨B⟩ := Λ.exists_basis
+    use parallelepiped B.toBasis
+    constructor
+    · exact parallelepiped_isCompact B.toBasis
+    · intro x
+      let v := ZSpan.floor B.toBasis x
+      use EuclideanGroup2.mk (↑v) 1
+      constructor
+      · constructor
+        · left; rfl
+        · have hv := v.2
+          have hcarrier : Λ.carrier = (Submodule.span ℤ (Set.range B.toBasis)).toAddSubgroup :=
+            Λ.carrier_eq_span B
+          show Multiplicative.ofAdd ↑v ∈ Λ
+          change (Multiplicative.toAdd (Multiplicative.ofAdd ↑v) : EuclideanPlane) ∈ Λ.carrier
+          simp only [toAdd_ofAdd]
+          rw [hcarrier]
+          exact hv
+      · simp only [EuclideanGroup2.mk, toAdd_ofAdd]
+        have heq : x - ↑v = ZSpan.fract B.toBasis x := by
+          rw [ZSpan.fract_apply]
+        rw [heq]
+        exact ZSpan.fundamentalDomain_subset_parallelepiped B.toBasis
+            (ZSpan.fract_mem_fundamentalDomain B.toBasis x)
 
 /-- p2 is symmorphic. -/
 lemma WallpaperGroup.p2.isSymmorphic : IsSymmorphic (WallpaperGroup.p2 Λ) := by
-  sorry
+  rw [IsSymmorphic]
+  -- First, characterize the point group of p2
+  -- The point group consists of elements A such that ∃v, (v, A) ∈ p2
+  -- This means A = 1 or A = R_π
+  let s : WallpaperGroup.pointGroup (WallpaperGroup.p2 Λ) →* ↥(WallpaperGroup.p2 Λ) := {
+    toFun := fun A => ⟨EuclideanGroup2.mk 0 A.1, by
+      simp only [WallpaperGroup.p2, Subgroup.mem_mk, EuclideanGroup2.mk]
+      have ⟨v, hv⟩ := A.2
+      simp only [WallpaperGroup.p2, EuclideanGroup2.mk] at hv
+      constructor
+      · exact hv.1
+      · simp only [ofAdd_zero]; exact Λ.zero_mem⟩
+    map_one' := by
+      apply Subtype.ext
+      simp [EuclideanGroup2.mk]
+    map_mul' := by
+      intro A B
+      apply Subtype.ext
+      simp only [EuclideanGroup2.mk, Subgroup.coe_mul]
+      -- A and B are in the point group, so A.1 and B.1 are either 1 or R_π
+      have hA : A.1 = 1 ∨ A.1 = rotationMatrix' Real.pi := by
+        have ⟨v, hv⟩ := A.2
+        simp only [WallpaperGroup.p2, EuclideanGroup2.mk] at hv
+        exact hv.1
+      have hB : B.1 = 1 ∨ B.1 = rotationMatrix' Real.pi := by
+        have ⟨v, hv⟩ := B.2
+        simp only [WallpaperGroup.p2, EuclideanGroup2.mk] at hv
+        exact hv.1
+      ext
+      · -- left component
+        rcases hA with hA1 | hAπ <;> rcases hB with hB1 | hBπ
+        · simp [hA1, hB1]
+        · simp [hA1, hBπ]
+        · simp [hAπ, hB1, rotationPi_mulAut_action]
+        · simp [hAπ, hBπ, rotationPi_mulAut_action]
+      · -- right component
+        simp [SemidirectProduct.mul_right]
+  }
+  use s
+  intro A
+  rfl
+
+/-- The point group of p2 is {1, R_π}. -/
+lemma WallpaperGroup.p2.pointGroup_carrier :
+    (WallpaperGroup.pointGroup (WallpaperGroup.p2 Λ) : Set OrthogonalGroup2) =
+    {1, rotationMatrix' Real.pi} := by
+  ext A
+  simp only [SetLike.mem_coe, Set.mem_insert_iff, Set.mem_singleton_iff]
+  constructor
+  · intro ⟨v, hv⟩
+    simp only [WallpaperGroup.p2, EuclideanGroup2.mk] at hv
+    exact hv.1
+  · intro hA
+    rcases hA with hA1 | hAπ
+    · rw [hA1]
+      use 0
+      simp only [WallpaperGroup.p2, Subgroup.mem_mk, EuclideanGroup2.mk]
+      constructor
+      · left; rfl
+      · simp only [ofAdd_zero]; exact Λ.zero_mem
+    · rw [hAπ]
+      use 0
+      simp only [WallpaperGroup.p2, Subgroup.mem_mk, EuclideanGroup2.mk]
+      constructor
+      · right; rfl
+      · simp only [ofAdd_zero]; exact Λ.zero_mem
 
 /-- The point group of p2 is C₂. -/
 lemma WallpaperGroup.p2.pointGroup :
     Nonempty ((WallpaperGroup.pointGroup (WallpaperGroup.p2 Λ)) ≃* CyclicPointGroup 2) := by
-  sorry
+  -- Both have the same carrier: {1, R_π}
+  have hC2 : (CyclicPointGroup 2 : Set OrthogonalGroup2) = {1, rotationMatrix' Real.pi} :=
+    CyclicPointGroup.two
+  have hp2 : (WallpaperGroup.pointGroup (WallpaperGroup.p2 Λ) : Set OrthogonalGroup2) =
+             {1, rotationMatrix' Real.pi} := pointGroup_carrier Λ
+  -- Use that they have the same carriers
+  have heq : WallpaperGroup.pointGroup (WallpaperGroup.p2 Λ) = CyclicPointGroup 2 := by
+    ext A
+    rw [← SetLike.mem_coe, ← SetLike.mem_coe, hp2, hC2]
+  exact ⟨MulEquiv.subgroupCongr heq⟩
 
 /-- p1 and p2 are the only wallpaper groups with oblique lattice. -/
 lemma oblique_wallpaperGroups (Γ : Subgroup EuclideanGroup2) (hΓ : IsWallpaperGroup Γ)

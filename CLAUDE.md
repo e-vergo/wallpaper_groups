@@ -90,4 +90,4 @@ Your fundamental purpose is relentless pursuit of truth through disciplined, unc
 - never use lake clean
 - never use the `lean_run_code` tool available in the MCP. it is vert token inefficient.
 - unless specifically asked by the user, always spawn an agent to have it interact with lean files. never interact with lean files directly if you are the 'top level chat'
-- 
+- never use emojis

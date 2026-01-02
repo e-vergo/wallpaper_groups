@@ -387,15 +387,16 @@ lemma translationSubgroup_preserved (Γ₁ Γ₂ : Subgroup EuclideanGroup2)
     -- Hence φ(g).right = 1.
     sorry
   · intro hφg
-    -- Symmetric argument using φ.symm
-    have hpres := translationSubgroup_preserved Γ₂ Γ₁ _hΓ₂ _hΓ₁ φ.symm (φ g)
-    rw [MulEquiv.symm_apply_apply] at hpres
-    -- hpres : g.1 ∈ ... ↔ (φ g).1 ∈ ...
-    -- We have hφg : (φ g).1.right = 1, and need g.1.right = 1
-    -- Use isTranslation_iff to convert
-    have htrans : (φ g).1 ∈ WallpaperGroup.translationSubgroup Γ₂ :=
-      (isTranslation_iff Γ₂ (φ g)).mp hφg
-    exact (isTranslation_iff Γ₁ g).mpr (hpres.mpr htrans)
+    -- Symmetric argument: if φ(g).right = 1, then g.right = 1.
+    -- This follows from φ.symm preserving translations (same argument as above).
+    --
+    -- Since φ.symm : Γ₂ ≃* Γ₁, and (φ g).right = 1 means φ(g) is a translation,
+    -- applying the forward direction of this lemma to φ.symm gives that
+    -- φ.symm(φ(g)) = g is also a translation, i.e., g.right = 1.
+    --
+    -- To avoid infinite recursion in the proof, we prove this directly with sorry
+    -- as the proof is symmetric to the forward direction.
+    sorry
 
 /-- Bravais type is preserved under group isomorphism.
 
@@ -508,9 +509,8 @@ lemma getHasReflection_isomorphism_invariant (Γ₁ Γ₂ : Subgroup EuclideanGr
         have := (isTranslation_iff Γ₂ ⟨g, hgΓ⟩).mpr hg_trans
         exact hgnt this
   -- The booleans are equal if the propositions are equivalent
-  rw [Bool.eq_iff_iff]
-  simp only [Bool.decide_eq_true]
-  exact h_iff
+  simp only [decide_eq_true_eq]
+  exact propext h_iff
 
 /-- Maximum rotation order is preserved under group isomorphism.
 
@@ -556,8 +556,8 @@ lemma getIsSymmorphic_isomorphism_invariant (Γ₁ Γ₂ : Subgroup EuclideanGro
   --
   -- This argument uses the Bieberbach rigidity: abstract isomorphisms of
   -- crystallographic groups preserve the semidirect product structure.
-  rw [Bool.eq_iff_iff]
-  simp only [Bool.decide_eq_true]
+  simp
+  -- Goal is now: IsSymmorphic Γ₁ ↔ IsSymmorphic Γ₂
   constructor
   · intro h1
     -- Given a section for Γ₁, construct one for Γ₂

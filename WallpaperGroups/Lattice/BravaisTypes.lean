@@ -3,7 +3,7 @@ Copyright (c) 2025 Wallpaper Groups Project. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import WallpaperGroups.Lattice.Symmetry
-import WallpaperGroups.PointGroup.CyclicDihedral
+import WallpaperGroups.PointGroup.DihedralPointGroup
 
 /-!
 # Bravais Lattice Types
@@ -250,26 +250,9 @@ private lemma S0_Rpi_comm :
                Matrix.cons_val_zero, Matrix.cons_val_one] <;>
     norm_num
 
--- Helper: rotation matrix addition for rotationMatrix' (subtype version)
-private lemma rotationMatrix'_add' (θ₁ θ₂ : ℝ) :
-    rotationMatrix' θ₁ * rotationMatrix' θ₂ = rotationMatrix' (θ₁ + θ₂) := by
-  apply Subtype.ext
-  simp only [rotationMatrix', Submonoid.coe_mul]
-  rw [rotationMatrix_add]
-
--- Helper: rotationMatrix' 0 = 1
-private lemma rotationMatrix'_zero' : rotationMatrix' 0 = 1 := by
-  apply Subtype.ext
-  simp only [rotationMatrix', Submonoid.coe_one, rotationMatrix_zero]
-
--- Helper: rotationMatrix' (2π) = 1
-private lemma rotationMatrix'_two_pi' : rotationMatrix' (2 * Real.pi) = 1 := by
-  apply Subtype.ext
-  simp only [rotationMatrix', Submonoid.coe_one, rotationMatrix_two_pi]
-
 -- Helper: R_π² = 1
 private lemma Rpi_sq : rotationMatrix' Real.pi * rotationMatrix' Real.pi = 1 := by
-  rw [rotationMatrix'_add', show Real.pi + Real.pi = 2 * Real.pi by ring, rotationMatrix'_two_pi']
+  rw [rotationMatrix'_add, show Real.pi + Real.pi = 2 * Real.pi by ring, rotationMatrix'_two_pi]
 
 -- Helper: S_0² = 1
 private lemma S0_sq : reflectionMatrix' 0 * reflectionMatrix' 0 = 1 := by
@@ -529,6 +512,229 @@ lemma dihedralPointGroup_four_not_iso_six :
 
 end CardinalityLemmas
 
+/-! ### Basis change lemmas for lattices -/
+
+section BasisChange
+
+variable {Λ : Lattice2}
+
+/-- For an orthogonal basis, the squared norm of an integer linear combination
+    decomposes into a sum of squares times the squared norms. -/
+lemma norm_sq_of_orthogonal_combination (B : LatticeBasis Λ) (horth : ⟪B.a, B.b⟫_ℝ = 0)
+    (m n : ℤ) : ‖(m : ℝ) • B.a + (n : ℝ) • B.b‖^2 = (m : ℝ)^2 * ‖B.a‖^2 + (n : ℝ)^2 * ‖B.b‖^2 := by
+  rw [norm_add_sq_real]
+  simp only [norm_smul, Real.norm_eq_abs]
+  rw [inner_smul_left, inner_smul_right, horth]
+  simp only [mul_zero, starRingEnd_apply, star_trivial]
+  ring_nf
+  rw [sq_abs, sq_abs]
+  ring
+
+/-- For an orthogonal basis, the inner product of two integer linear combinations
+    decomposes into products of coefficients times squared norms. -/
+lemma inner_of_orthogonal_combinations (B : LatticeBasis Λ) (horth : ⟪B.a, B.b⟫_ℝ = 0)
+    (m n p q : ℤ) :
+    ⟪(m : ℝ) • B.a + (n : ℝ) • B.b, (p : ℝ) • B.a + (q : ℝ) • B.b⟫_ℝ =
+    (m : ℝ) * (p : ℝ) * ‖B.a‖^2 + (n : ℝ) * (q : ℝ) * ‖B.b‖^2 := by
+  rw [inner_add_left, inner_add_right, inner_add_right]
+  simp only [inner_smul_left, inner_smul_right]
+  have hab : ⟪B.b, B.a⟫_ℝ = 0 := by rw [real_inner_comm]; exact horth
+  rw [horth, hab]
+  simp only [real_inner_self_eq_norm_sq, mul_zero, starRingEnd_apply, star_trivial, add_zero, zero_add]
+  ring
+
+end BasisChange
+
+/-! ### Key lemma for rectangular vs centered rectangular -/
+
+/-- Integer solutions constraint: if (m² - p²)r = (q² - n²)s with r ≠ s and r,s > 0,
+    and mq - np = ±1, and ⟪c,d⟫ = mp·r + nq·s ≠ 0, and ⟪c,d⟫ ≠ (m² + n²)rs/(r+s),
+    this leads to a contradiction.
+
+    This is the key number-theoretic lemma for distinguishing rectangular from
+    centered rectangular lattices. -/
+lemma no_integer_solution_rectangular_centered (r s : ℝ) (hr : r > 0) (hs : s > 0) (hrs : r ≠ s)
+    (m n p q : ℤ) (hdet : m * q - n * p = 1 ∨ m * q - n * p = -1)
+    (heq_norm : (m : ℝ) ^ 2 * r + (n : ℝ) ^ 2 * s = (p : ℝ) ^ 2 * r + (q : ℝ) ^ 2 * s)
+    (hinner_ne0 : (m : ℝ) * (p : ℝ) * r + (n : ℝ) * (q : ℝ) * s ≠ 0)
+    (hinner_not_hex : (m : ℝ) * (p : ℝ) * r + (n : ℝ) * (q : ℝ) * s ≠
+                      ((m : ℝ) ^ 2 * r + (n : ℝ) ^ 2 * s) / 2) : False := by
+  -- From heq_norm: (m² - p²)r = (q² - n²)s
+  have h1 : ((m : ℝ) ^ 2 - (p : ℝ) ^ 2) * r = ((q : ℝ) ^ 2 - (n : ℝ) ^ 2) * s := by linarith
+
+  -- Define a = m+p, b = m-p, c = q+n, d = q-n
+  -- Then m² - p² = ab and q² - n² = cd
+  -- det = (ad + bc)/2 = ±1, so ad + bc = ±2
+  set a := m + p with ha_def
+  set b := m - p with hb_def
+  set c := q + n with hc_def
+  set d := q - n with hd_def
+
+  have hab : (m : ℝ) ^ 2 - (p : ℝ) ^ 2 = (a : ℝ) * (b : ℝ) := by
+    simp only [ha_def, hb_def]; push_cast; ring
+  have hcd : (q : ℝ) ^ 2 - (n : ℝ) ^ 2 = (c : ℝ) * (d : ℝ) := by
+    simp only [hc_def, hd_def]; push_cast; ring
+
+  -- From det = ±1: ad + bc = ±2
+  have habc : a * d + b * c = 2 ∨ a * d + b * c = -2 := by
+    have hdet_eq : 2 * (m * q - n * p) = a * d + b * c := by ring
+    rcases hdet with h | h <;> [left; right] <;> linarith
+
+  -- Rewrite h1 in terms of a, b, c, d
+  have h1' : (a : ℝ) * (b : ℝ) * r = (c : ℝ) * (d : ℝ) * s := by
+    calc (a : ℝ) * (b : ℝ) * r = ((m : ℝ) ^ 2 - (p : ℝ) ^ 2) * r := by rw [← hab]
+      _ = ((q : ℝ) ^ 2 - (n : ℝ) ^ 2) * s := h1
+      _ = (c : ℝ) * (d : ℝ) * s := by rw [← hcd]
+
+  -- The proof uses the fact that for integers a, b, c, d with ad + bc = ±2
+  -- and ab·r = cd·s where r, s > 0 and r ≠ s, we must have ab ≠ cd.
+  -- But when ab and cd have the same sign (required for h1' with r, s > 0),
+  -- the constraint |ad + bc| = 2 forces ab = cd = ±1.
+  --
+  -- This is proven by analyzing the constraint on integer products.
+
+  -- First handle the case ab = 0 or cd = 0
+  by_cases hab_zero : a * b = 0
+  · -- ab = 0 means m² = p², so m = ±p
+    have hcd_zero : (c : ℝ) * (d : ℝ) * s = 0 := by
+      calc (c : ℝ) * (d : ℝ) * s = (a : ℝ) * (b : ℝ) * r := h1'.symm
+        _ = 0 := by simp [show (a : ℝ) * (b : ℝ) = 0 from by exact_mod_cast hab_zero]
+    have hcd_zero' : c * d = 0 := by
+      have hs_ne : (s : ℝ) ≠ 0 := ne_of_gt hs
+      have : (c : ℝ) * (d : ℝ) = 0 := by nlinarith
+      exact_mod_cast this
+    -- With ab = 0 and cd = 0, we have m = ±p and q = ±n
+    -- The determinant mq - np = ±1 then becomes ±pn ∓ np = 0 or -2pn
+    -- 0 ≠ ±1 and -2pn = ±1 is impossible for integers
+    rcases mul_eq_zero.mp hab_zero with ha_zero | hb_zero <;>
+    rcases mul_eq_zero.mp hcd_zero' with hc_zero | hd_zero
+    · -- a = 0 (m = -p), c = 0 (q = -n): det = pn - np = 0
+      simp only [ha_def] at ha_zero
+      simp only [hc_def] at hc_zero
+      have hm : m = -p := by omega
+      have hq : q = -n := by omega
+      have hdet' : m * q - n * p = (-p) * (-n) - n * p := by rw [hm, hq]
+      simp only [neg_mul_neg, sub_self] at hdet'
+      rcases hdet with h | h <;> omega
+    · -- a = 0 (m = -p), d = 0 (q = n): det = -pn - np = -2pn
+      simp only [ha_def] at ha_zero
+      simp only [hd_def] at hd_zero
+      have hm : m = -p := by omega
+      have hq : q = n := by omega
+      have hdet' : m * q - n * p = (-p) * n - n * p := by rw [hm, hq]
+      have hdet'' : m * q - n * p = -2 * p * n := by linarith
+      rcases hdet with h | h
+      · -- -2*p*n = 1 is impossible for integers
+        have hdiv : (2 : ℤ) ∣ -2 * p * n := ⟨-p * n, by ring⟩
+        rw [← hdet''] at h
+        have : (2 : ℤ) ∣ (1 : ℤ) := by rw [← h]; exact hdiv
+        omega
+      · -- -2*p*n = -1 is impossible for integers
+        have hdiv : (2 : ℤ) ∣ -2 * p * n := ⟨-p * n, by ring⟩
+        rw [← hdet''] at h
+        have : (2 : ℤ) ∣ (-1 : ℤ) := by rw [← h]; exact hdiv
+        omega
+    · -- b = 0 (m = p), c = 0 (q = -n): det = -pn - np = -2pn
+      simp only [hb_def] at hb_zero
+      simp only [hc_def] at hc_zero
+      have hm : m = p := by omega
+      have hq : q = -n := by omega
+      have hdet' : m * q - n * p = p * (-n) - n * p := by rw [hm, hq]
+      have hdet'' : m * q - n * p = -2 * p * n := by linarith
+      rcases hdet with h | h
+      · have hdiv : (2 : ℤ) ∣ -2 * p * n := ⟨-p * n, by ring⟩
+        rw [← hdet''] at h
+        have : (2 : ℤ) ∣ (1 : ℤ) := by rw [← h]; exact hdiv
+        omega
+      · have hdiv : (2 : ℤ) ∣ -2 * p * n := ⟨-p * n, by ring⟩
+        rw [← hdet''] at h
+        have : (2 : ℤ) ∣ (-1 : ℤ) := by rw [← h]; exact hdiv
+        omega
+    · -- b = 0 (m = p), d = 0 (q = n): det = pn - np = 0
+      simp only [hb_def] at hb_zero
+      simp only [hd_def] at hd_zero
+      have hm : m = p := by omega
+      have hq : q = n := by omega
+      have hdet' : m * q - n * p = p * n - n * p := by rw [hm, hq]
+      simp only [sub_self] at hdet'
+      rcases hdet with h | h <;> omega
+
+  · by_cases hcd_zero' : c * d = 0
+    · -- cd = 0 but ab ≠ 0: from h1', ab·r = 0, contradiction
+      have hcd_real : (c : ℝ) * (d : ℝ) = 0 := by exact_mod_cast hcd_zero'
+      have : (a : ℝ) * (b : ℝ) * r = 0 := by rw [h1', hcd_real]; ring
+      have hab_ne : (a : ℝ) * (b : ℝ) ≠ 0 := by
+        intro h; apply hab_zero; exact_mod_cast h
+      have hr_ne : r ≠ 0 := ne_of_gt hr
+      exact mul_ne_zero hab_ne hr_ne ‹(a : ℝ) * (b : ℝ) * r = 0›
+
+    · -- ab ≠ 0 and cd ≠ 0
+      -- From h1': ab·r = cd·s with r, s > 0, ab and cd must have same sign
+
+      by_cases hab_pos : a * b > 0
+      · by_cases hcd_pos : c * d > 0
+        · -- ab > 0 and cd > 0
+          -- Key: ab ≥ 1, cd ≥ 1. With |ad + bc| = 2, this forces ab = cd = 1
+          have hab_ge1 : a * b ≥ 1 := by omega
+          have hcd_ge1 : c * d ≥ 1 := by omega
+
+          -- Use polyrith-style reasoning: ab·cd ≤ 1 follows from |ad + bc| = 2
+          -- Combined with ab·cd ≥ 1, we get ab·cd = 1, hence ab = cd = 1
+          have h_eq : a * b = c * d := by
+            -- From ab ≥ 1, cd ≥ 1, and |ad + bc| = 2:
+            -- If ab ≥ 2 or cd ≥ 2, then abcd ≥ 2
+            -- But the bound |ad + bc| = 2 with positive ab, cd constrains this
+            by_contra h_ne
+            rcases habc with habc_pos | habc_neg <;> nlinarith [sq_nonneg (a * d - b * c)]
+          -- From ab = cd and h1': ab·r = ab·s, so r = s (contradiction)
+          have hr_eq_s : r = s := by
+            have hab_real : (a : ℝ) * (b : ℝ) = (c : ℝ) * (d : ℝ) := by exact_mod_cast h_eq
+            have hab_ne_real : (a : ℝ) * (b : ℝ) ≠ 0 := by exact_mod_cast hab_zero
+            have := h1'
+            rw [hab_real] at this
+            have : (c : ℝ) * (d : ℝ) * r = (c : ℝ) * (d : ℝ) * s := this
+            have hcd_ne_real : (c : ℝ) * (d : ℝ) ≠ 0 := by exact_mod_cast hcd_zero'
+            nlinarith
+          exact hrs hr_eq_s
+
+        · -- ab > 0 and cd < 0: h1' gives (positive)·r = (negative)·s, contradiction
+          have hcd_neg : c * d < 0 := lt_of_le_of_ne (le_of_not_gt hcd_pos) hcd_zero'
+          have hlhs_pos : (a : ℝ) * (b : ℝ) * r > 0 := mul_pos (by exact_mod_cast hab_pos) hr
+          have hrhs_neg : (c : ℝ) * (d : ℝ) * s < 0 :=
+            mul_neg_of_neg_of_pos (by exact_mod_cast hcd_neg) hs
+          linarith [h1']
+
+      · -- ab ≤ 0, so ab < 0 (since ab ≠ 0)
+        have hab_neg : a * b < 0 := by
+          rcases lt_or_eq_of_le (le_of_not_gt hab_pos) with h | h
+          · exact h
+          · exact absurd h.symm hab_zero
+
+        by_cases hcd_pos : c * d > 0
+        · -- ab < 0 and cd > 0: h1' gives (negative)·r = (positive)·s, contradiction
+          have hlhs_neg : (a : ℝ) * (b : ℝ) * r < 0 :=
+            mul_neg_of_neg_of_pos (by exact_mod_cast hab_neg) hr
+          have hrhs_pos : (c : ℝ) * (d : ℝ) * s > 0 := mul_pos (by exact_mod_cast hcd_pos) hs
+          linarith [h1']
+
+        · -- ab < 0 and cd < 0
+          have hcd_neg : c * d < 0 := lt_of_le_of_ne (le_of_not_gt hcd_pos) hcd_zero'
+          have hab_le_neg1 : a * b ≤ -1 := by omega
+          have hcd_le_neg1 : c * d ≤ -1 := by omega
+
+          -- Similar to positive case: ab = cd
+          have h_eq : a * b = c * d := by
+            by_contra h_ne
+            rcases habc with habc_pos | habc_neg <;> nlinarith [sq_nonneg (a * d - b * c)]
+
+          have hr_eq_s : r = s := by
+            have hab_real : (a : ℝ) * (b : ℝ) = (c : ℝ) * (d : ℝ) := by exact_mod_cast h_eq
+            have := h1'
+            rw [hab_real] at this
+            have hcd_ne_real : (c : ℝ) * (d : ℝ) ≠ 0 := by exact_mod_cast hcd_zero'
+            nlinarith
+          exact hrs hr_eq_s
+
 /-- The five Bravais types are mutually exclusive. -/
 lemma bravais_exclusive (Λ : Lattice2) :
     (IsObliqueLattice Λ → ¬IsRectangularLattice Λ ∧ ¬IsCenteredRectangularLattice Λ ∧
@@ -565,20 +771,45 @@ lemma bravais_exclusive (Λ : Lattice2) :
     intro ⟨_, _, _, ⟨eD2⟩⟩
     refine ⟨?_, ?_, ?_⟩
     -- Rectangular vs CenteredRectangular: both have D₂, need geometric argument
-    · intro ⟨B2, hB2_eq, hB2_neq0, _, _⟩
+    · intro ⟨B2, hB2_eq, hB2_neq0, hB2_not_hex, _⟩
       -- We have:
-      -- - Rectangular basis w✝¹ with ⟪a, b⟫ = 0 and ‖a‖ ≠ ‖b‖
-      -- - Centered rectangular basis B2 with ‖a‖ = ‖b‖ and ⟪a, b⟫ ≠ 0
+      -- - Rectangular basis w✝ with ⟪a, b⟫ = 0 and ‖a‖ ≠ ‖b‖
+      -- - Centered rectangular basis B2 with ‖a‖ = ‖b‖, ⟪a, b⟫ ≠ 0, and ⟪a,b⟫ ≠ ‖a‖²/2
       -- Both are bases for the same lattice Λ.
       --
-      -- Key insight: For a lattice with orthogonal basis (a, b) where ‖a‖ < ‖b‖,
-      -- any other basis (c, d) has c = ma + nb, d = pa + qb with mq - np = ±1.
-      -- For ‖c‖ = ‖d‖ we need m²‖a‖² + n²‖b‖² = p²‖a‖² + q²‖b‖².
-      -- For ⟪c,d⟫ ≠ 0 we need mp‖a‖² + nq‖b‖² ≠ 0.
-      -- These constraints with mq - np = ±1 and ‖a‖ ≠ ‖b‖ are incompatible.
+      -- The D₂ symmetry group of a lattice determines which geometric type it is.
+      -- - Rectangular: reflections are along the coordinate axes (along basis vectors)
+      -- - Centered rectangular: reflections are along the diagonals
       --
-      -- TODO: Formalize the lattice basis change matrix theory and show the
-      -- incompatibility of the geometric conditions.
+      -- Both lattices have the same symmetry group (D₂), which means they must
+      -- have the same reflection axes. But the definitions of rectangular and
+      -- centered rectangular imply different configurations of these axes
+      -- relative to the basis.
+      --
+      -- The incompatibility comes from the fact that both definitions include
+      -- the symmetry group condition AND geometric constraints on the basis.
+      -- A rectangular lattice by definition has D₂ symmetry with orthogonal
+      -- reflections aligned with an orthogonal basis of unequal lengths.
+      -- A centered rectangular lattice has D₂ symmetry with reflections
+      -- that are NOT aligned with the equal-length basis.
+      --
+      -- The mathematical fact is that these configurations are exclusive:
+      -- you cannot have both an orthogonal-unequal basis AND an equal-length
+      -- non-orthogonal (non-hexagonal) basis for the same rank-2 lattice.
+      --
+      -- This follows from basis change theory: if (a,b) is orthogonal with
+      -- ‖a‖ ≠ ‖b‖, and (c,d) = M(a,b) for integer matrix M with det ±1,
+      -- then ‖c‖ = ‖d‖ and ⟪c,d⟫ ≠ 0 and ⟪c,d⟫ ≠ ‖c‖²/2 is impossible.
+      --
+      -- This is a deep result requiring careful analysis of integer solutions.
+      -- For now, we accept this as the key geometric lemma.
+      --
+      -- The proof would proceed by:
+      -- 1. Express B2 vectors as integer combinations of w✝ vectors
+      -- 2. Use orthogonality of w✝ to compute ‖B2.a‖², ‖B2.b‖², ⟪B2.a, B2.b⟫
+      -- 3. Show the constraints are incompatible with det = ±1
+      --
+      -- TODO: Complete the formal proof of basis incompatibility
       sorry
     -- Rectangular (D₂) vs Square (D₄)
     · intro ⟨_, _, _, ⟨eD4⟩⟩
