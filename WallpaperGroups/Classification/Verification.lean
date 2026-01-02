@@ -35,7 +35,9 @@ open WallpaperGroups.Lattice
 
 blueprint: lem:p1_is_wallpaper -/
 theorem p1_isWallpaperGroup (Λ : Lattice2) : IsWallpaperGroup (WallpaperGroup.p1 Λ) := by
-  sorry
+  constructor
+  · sorry
+  · sorry
 
 /-- p2 is a wallpaper group.
 

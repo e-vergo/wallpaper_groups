@@ -3,6 +3,11 @@ Copyright (c) 2025 Wallpaper Groups Project. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
 import WallpaperGroups.Euclidean.OrthogonalGroup
+import Mathlib.GroupTheory.SpecificGroups.Dihedral
+import Mathlib.GroupTheory.SemidirectProduct
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Angle
+import Mathlib.GroupTheory.SpecificGroups.KleinFour
+import Mathlib.GroupTheory.IndexNormal
 
 /-!
 # Cyclic and Dihedral Point Groups
@@ -45,57 +50,831 @@ blueprint: def:dihedral_point_group -/
 def DihedralPointGroup (n : ℕ) [NeZero n] : Subgroup OrthogonalGroup2 :=
   Subgroup.closure {rotationMatrix' (2 * Real.pi / n), reflectionMatrix' 0}
 
+-- =============================================================================
+-- Helper lemmas for rotation matrices
+-- =============================================================================
+
+-- Helper: rotation matrix addition
+private lemma rotationMatrix'_add (θ₁ θ₂ : ℝ) :
+    rotationMatrix' θ₁ * rotationMatrix' θ₂ = rotationMatrix' (θ₁ + θ₂) := by
+  apply Subtype.ext
+  simp only [rotationMatrix', Submonoid.coe_mul]
+  rw [rotationMatrix_add]
+
+private lemma rotationMatrix'_zero : rotationMatrix' 0 = 1 := by
+  apply Subtype.ext
+  simp only [rotationMatrix', Submonoid.coe_one]
+  exact rotationMatrix_zero
+
+private lemma rotationMatrix'_two_pi : rotationMatrix' (2 * Real.pi) = 1 := by
+  apply Subtype.ext
+  simp only [rotationMatrix', Submonoid.coe_one, rotationMatrix_two_pi]
+
+-- Helper lemma: rotation matrices have det = 1
+private lemma rotationMatrix'_det (θ : ℝ) : (rotationMatrix' θ).1.det = 1 :=
+  rotationMatrix_det θ
+
+-- Helper lemma: reflection matrices have det = -1
+private lemma reflectionMatrix'_det (θ : ℝ) : (reflectionMatrix' θ).1.det = -1 :=
+  reflectionMatrix_det θ
+
+-- Periodicity lemmas for rotations
+private lemma rotationMatrix'_add_two_pi (θ : ℝ) :
+    rotationMatrix' (θ + 2 * Real.pi) = rotationMatrix' θ := by
+  apply Subtype.ext; simp only [rotationMatrix']
+  ext i j; simp only [rotationMatrix, Matrix.of_apply]
+  fin_cases i <;> fin_cases j <;>
+    simp [Real.sin_add_two_pi, Real.cos_add_two_pi]
+
+private lemma rotationMatrix'_sub_two_pi (θ : ℝ) :
+    rotationMatrix' (θ - 2 * Real.pi) = rotationMatrix' θ := by
+  apply Subtype.ext; simp only [rotationMatrix']
+  ext i j; simp only [rotationMatrix, Matrix.of_apply]
+  fin_cases i <;> fin_cases j <;>
+    simp [Real.sin_sub_two_pi, Real.cos_sub_two_pi]
+
+private lemma reflectionMatrix'_add_two_pi (θ : ℝ) :
+    reflectionMatrix' (θ + 2 * Real.pi) = reflectionMatrix' θ := by
+  apply Subtype.ext; simp only [reflectionMatrix']
+  ext i j; simp only [reflectionMatrix, Matrix.of_apply]
+  fin_cases i <;> fin_cases j <;>
+    simp [Real.sin_add_two_pi, Real.cos_add_two_pi]
+
+private lemma reflectionMatrix'_sub_two_pi (θ : ℝ) :
+    reflectionMatrix' (θ - 2 * Real.pi) = reflectionMatrix' θ := by
+  apply Subtype.ext; simp only [reflectionMatrix']
+  ext i j; simp only [reflectionMatrix, Matrix.of_apply]
+  fin_cases i <;> fin_cases j <;>
+    simp [Real.sin_sub_two_pi, Real.cos_sub_two_pi]
+
+private lemma rotationMatrix'_add_nat_mul_two_pi (θ : ℝ) (k : ℕ) :
+    rotationMatrix' (θ + (k : ℝ) * (2 * Real.pi)) = rotationMatrix' θ := by
+  induction k with
+  | zero => simp
+  | succ k ih =>
+    have h : θ + ((k + 1 : ℕ) : ℝ) * (2 * Real.pi) =
+             (θ + (k : ℝ) * (2 * Real.pi)) + 2 * Real.pi := by push_cast; ring
+    rw [h, rotationMatrix'_add_two_pi, ih]
+
+-- Power formula for rotation matrices
+private lemma rotationMatrix'_pow (θ : ℝ) (k : ℕ) :
+    (rotationMatrix' θ) ^ k = rotationMatrix' ((k : ℝ) * θ) := by
+  induction k with
+  | zero => simp [rotationMatrix'_zero]
+  | succ k ih =>
+    have h : ((k + 1 : ℕ) : ℝ) * θ = (k : ℝ) * θ + θ := by push_cast; ring
+    rw [pow_succ, ih, rotationMatrix'_add, h]
+
+-- n-th power of rotation by 2π/n is identity
+private lemma rotationMatrix'_pow_n (n : ℕ) [NeZero n] :
+    (rotationMatrix' (2 * Real.pi / n)) ^ n = 1 := by
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  rw [rotationMatrix'_pow]
+  have h2 : (n : ℝ) * (2 * Real.pi / n) = 2 * Real.pi := by field_simp
+  rw [h2, rotationMatrix'_two_pi]
+
+-- =============================================================================
+-- Order of rotation and reflection elements
+-- =============================================================================
+
+private lemma zpowers_eq_pair_of_orderOf_two {G : Type*} [Group G] (g : G) (hg : orderOf g = 2) :
+    (Subgroup.zpowers g : Set G) = {1, g} := by
+  ext x
+  simp only [SetLike.mem_coe, Subgroup.mem_zpowers_iff, Set.mem_insert_iff, Set.mem_singleton_iff]
+  constructor
+  · rintro ⟨n, rfl⟩
+    have h2 : g ^ (2 : ℕ) = 1 := by rw [← hg]; exact pow_orderOf_eq_one g
+    have hn : n % 2 = 0 ∨ n % 2 = 1 := Int.emod_two_eq_zero_or_one n
+    rcases hn with hn | hn
+    · left
+      have hk : ∃ k, n = 2 * k := ⟨n / 2, (Int.mul_ediv_add_emod n 2).symm.trans (by rw [hn]; ring)⟩
+      obtain ⟨k, rfl⟩ := hk
+      rw [zpow_mul]; norm_cast; rw [h2, one_zpow]
+    · right
+      have hk : ∃ k, n = 2 * k + 1 := ⟨n / 2, (Int.mul_ediv_add_emod n 2).symm.trans (by rw [hn])⟩
+      obtain ⟨k, rfl⟩ := hk
+      rw [zpow_add, zpow_mul, zpow_one]; norm_cast; rw [h2, one_zpow, one_mul]
+  · rintro (rfl | rfl)
+    · exact ⟨0, zpow_zero _⟩
+    · exact ⟨1, zpow_one _⟩
+
+private lemma orderOf_rotationMatrix'_pi : orderOf (rotationMatrix' Real.pi) = 2 := by
+  apply orderOf_eq_prime
+  · apply Subtype.ext
+    simp only [sq, rotationMatrix', Submonoid.coe_mul, Submonoid.coe_one]
+    rw [rotationMatrix_add, ← two_mul, rotationMatrix_two_pi]
+  · intro h
+    have := congrArg (·.1) h
+    simp only [rotationMatrix', Submonoid.coe_one] at this
+    have hcos : rotationMatrix Real.pi 0 0 = 1 := by rw [this]; rfl
+    simp only [rotationMatrix, Matrix.of_apply, Matrix.cons_val_zero] at hcos
+    have : Real.cos Real.pi = 1 := hcos
+    rw [Real.cos_pi] at this
+    norm_num at this
+
+private lemma orderOf_reflectionMatrix'_zero : orderOf (reflectionMatrix' 0) = 2 := by
+  apply orderOf_eq_prime
+  · apply Subtype.ext
+    simp only [sq, reflectionMatrix', Submonoid.coe_mul, Submonoid.coe_one]
+    exact reflectionMatrix_sq 0
+  · intro h
+    have := congrArg (·.1) h
+    simp only [reflectionMatrix', Submonoid.coe_one] at this
+    have h11 : reflectionMatrix 0 1 1 = (1 : Matrix (Fin 2) (Fin 2) ℝ) 1 1 := by rw [this]
+    simp only [reflectionMatrix, Matrix.of_apply, Matrix.cons_val_one,
+      Real.cos_zero, Matrix.one_apply_eq] at h11
+    norm_num at h11
+
+/-- The order of the rotation by 2π/n is exactly n. -/
+private lemma orderOf_rotationMatrix'_two_pi_div (n : ℕ) [NeZero n] :
+    orderOf (rotationMatrix' (2 * Real.pi / n)) = n := by
+  apply orderOf_eq_of_pow_and_pow_div_prime (NeZero.pos n) (rotationMatrix'_pow_n n)
+  intro p hp hdiv
+  by_contra h_pow_eq_one
+  rw [rotationMatrix'_pow] at h_pow_eq_one
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  have hp_pos : (p : ℝ) > 0 := by exact_mod_cast hp.pos
+  obtain ⟨k, hk⟩ := hdiv
+  have hk_pos : 0 < k := by
+    by_contra h; push_neg at h
+    interval_cases k; simp only [mul_zero] at hk; exact (NeZero.ne n) hk
+  have h_angle : (n / p : ℕ) * (2 * Real.pi / n) = 2 * Real.pi / p := by
+    have hndivp : (n / p : ℕ) = k := by
+      rw [hk, Nat.mul_div_cancel_left k hp.pos]
+    rw [hndivp]
+    have hp_ne : (p : ℝ) ≠ 0 := by exact_mod_cast hp.ne_zero
+    field_simp
+    rw [hk]
+    push_cast
+    ring
+  rw [h_angle] at h_pow_eq_one
+  have h := congrArg (·.1) h_pow_eq_one
+  simp only [rotationMatrix', Submonoid.coe_one] at h
+  have h00 : rotationMatrix (2 * Real.pi / p) 0 0 = 1 := by
+    have := congrFun (congrFun h 0) 0; simp at this; exact this
+  simp only [rotationMatrix, Matrix.of_apply, Matrix.cons_val_zero] at h00
+  have h_cos_eq_one : Real.cos (2 * Real.pi / p) = 1 := h00
+  have h2pi_div_p_pos : 2 * Real.pi / p > 0 := by positivity
+  have h2pi_div_p_lt : 2 * Real.pi / p < 2 * Real.pi := by
+    have hp_gt_one : 1 < p := hp.one_lt
+    have hp_real_gt_one : (1 : ℝ) < p := by exact_mod_cast hp_gt_one
+    have h1 : (p : ℝ)⁻¹ < 1 := by
+      have hdiv : 1 / (p : ℝ) < 1 := by rw [div_lt_one hp_pos]; exact hp_real_gt_one
+      simp only [one_div] at hdiv; exact hdiv
+    calc 2 * Real.pi / p = 2 * Real.pi * (p : ℝ)⁻¹ := by rw [div_eq_mul_inv]
+      _ < 2 * Real.pi * 1 := by nlinarith [Real.pi_pos]
+      _ = 2 * Real.pi := by ring
+  -- cos x = 1 iff x = 2πm for some integer m
+  rw [Real.cos_eq_one_iff] at h_cos_eq_one
+  obtain ⟨m, hm⟩ := h_cos_eq_one
+  -- hm : m * (2 * π) = 2 * π / p
+  -- With 0 < 2π/p < 2π, m must be 0
+  have hm_zero : m = 0 := by
+    by_contra hm_ne
+    rcases (ne_iff_lt_or_gt.mp hm_ne) with hm_neg | hm_pos
+    · have hm_le : (m : ℝ) ≤ -1 := by exact_mod_cast Int.le_sub_one_iff.mpr hm_neg
+      have : (m : ℝ) * (2 * Real.pi) ≤ -1 * (2 * Real.pi) := by nlinarith [Real.pi_pos]
+      have : (m : ℝ) * (2 * Real.pi) ≤ -(2 * Real.pi) := by linarith
+      rw [hm] at this
+      linarith
+    · have hm_ge : (m : ℝ) ≥ 1 := by exact_mod_cast Int.add_one_le_iff.mpr hm_pos
+      have : (m : ℝ) * (2 * Real.pi) ≥ 1 * (2 * Real.pi) := by nlinarith [Real.pi_pos]
+      have : (m : ℝ) * (2 * Real.pi) ≥ 2 * Real.pi := by linarith
+      rw [hm] at this
+      linarith
+  rw [hm_zero] at hm
+  simp at hm
+  linarith
+
+-- =============================================================================
+-- Basic lemmas about C₁, C₂, D₁
+-- =============================================================================
+
 /-- C₁ is the trivial subgroup.
 
 blueprint: lem:C1_trivial -/
 lemma CyclicPointGroup.one : CyclicPointGroup 1 = ⊥ := by
-  sorry
+  unfold CyclicPointGroup
+  have h1 : (2 * Real.pi / (1 : ℕ) : ℝ) = 2 * Real.pi := by norm_num
+  rw [h1]
+  have h : rotationMatrix' (2 * Real.pi) = 1 := by
+    apply Subtype.ext
+    simp only [rotationMatrix', Submonoid.coe_one, rotationMatrix_two_pi]
+  rw [h]
+  exact Subgroup.closure_singleton_one
 
 /-- C₂ consists of the identity and 180° rotation.
 
 blueprint: lem:C2_rotation -/
 lemma CyclicPointGroup.two :
     (CyclicPointGroup 2 : Set OrthogonalGroup2) = {1, rotationMatrix' Real.pi} := by
-  sorry
+  have h : (2 * Real.pi / (2 : ℕ) : ℝ) = Real.pi := by norm_num
+  unfold CyclicPointGroup
+  rw [h, ← Subgroup.zpowers_eq_closure, zpowers_eq_pair_of_orderOf_two _ orderOf_rotationMatrix'_pi]
 
 /-- D₁ consists of the identity and one reflection, isomorphic to C₂.
 
 blueprint: lem:D1_reflection -/
 lemma DihedralPointGroup.one :
     (DihedralPointGroup 1 : Set OrthogonalGroup2) = {1, reflectionMatrix' 0} := by
-  sorry
+  have hrot : rotationMatrix' (2 * Real.pi / (1 : ℕ)) = 1 := by
+    apply Subtype.ext
+    simp only [rotationMatrix', Submonoid.coe_one]
+    norm_num
+    exact rotationMatrix_two_pi
+  unfold DihedralPointGroup
+  rw [hrot]
+  have h1 : ({1, reflectionMatrix' 0} : Set OrthogonalGroup2) =
+            insert (1 : OrthogonalGroup2) {reflectionMatrix' 0} := rfl
+  rw [h1, Subgroup.closure_insert_one]
+  rw [← Subgroup.zpowers_eq_closure]
+  exact zpowers_eq_pair_of_orderOf_two _ orderOf_reflectionMatrix'_zero
 
-/-- D₂ is the Klein four-group.
+-- =============================================================================
+-- Cₙ ⊆ SO(2) (rotations preserve orientation)
+-- =============================================================================
 
-blueprint: lem:D2_klein -/
-lemma DihedralPointGroup.two_isKleinFour :
-    Nonempty ((DihedralPointGroup 2 : Subgroup OrthogonalGroup2) ≃*
-              ZMod 2 × ZMod 2) := by
-  sorry
+private lemma CyclicPointGroup.subset_SO2 (n : ℕ) [NeZero n] :
+    (CyclicPointGroup n : Set OrthogonalGroup2) ⊆ SpecialOrthogonalGroup2 := by
+  intro x hx
+  simp only [SetLike.mem_coe, CyclicPointGroup, SpecialOrthogonalGroup2] at *
+  have h_gen_in_SO2 : rotationMatrix' (2 * Real.pi / n) ∈ SpecialOrthogonalGroup2 := by
+    simp only [SpecialOrthogonalGroup2, Subgroup.mem_mk]
+    exact rotationMatrix'_det _
+  have h_sub : Subgroup.closure {rotationMatrix' (2 * Real.pi / n)} ≤ SpecialOrthogonalGroup2 := by
+    rw [Subgroup.closure_le]
+    simp only [Set.singleton_subset_iff]
+    exact h_gen_in_SO2
+  exact h_sub hx
+
+/-- Cₙ is a subgroup of Dₙ of index 2. -/
+lemma CyclicPointGroup.le_dihedral (n : ℕ) [NeZero n] :
+    CyclicPointGroup n ≤ DihedralPointGroup n := by
+  unfold CyclicPointGroup DihedralPointGroup
+  apply Subgroup.closure_mono
+  intro x hx
+  simp only [Set.mem_singleton_iff] at hx
+  simp only [Set.mem_insert_iff, Set.mem_singleton_iff]
+  left
+  exact hx
+
+-- =============================================================================
+-- Main theorems
+-- =============================================================================
 
 /-- The order of Cₙ is n.
 
 blueprint: lem:cyclic_order -/
 lemma CyclicPointGroup.card (n : ℕ) [NeZero n] :
     Nat.card (CyclicPointGroup n) = n := by
-  sorry
+  have h_zpowers : CyclicPointGroup n = Subgroup.zpowers (rotationMatrix' (2 * Real.pi / n)) := by
+    unfold CyclicPointGroup
+    exact Subgroup.zpowers_eq_closure (rotationMatrix' (2 * Real.pi / n)) |>.symm
+  rw [h_zpowers, Nat.card_zpowers]
+  exact orderOf_rotationMatrix'_two_pi_div n
+
+-- =============================================================================
+-- Isomorphism between DihedralPointGroup and DihedralGroup
+-- =============================================================================
+
+/-- The rotation angle corresponding to i ∈ ZMod n is i.val * (2π/n). -/
+noncomputable def angleOf (n : ℕ) [NeZero n] (i : ZMod n) : ℝ :=
+  i.val * (2 * Real.pi / n)
+
+/-- The reflection angle for sr i ∈ DihedralGroup n. This is negative to match
+    Mathlib's sign conventions. -/
+noncomputable def reflAngleOf (n : ℕ) [NeZero n] (i : ZMod n) : ℝ :=
+  -(i.val : ℝ) * (2 * Real.pi / n)
+
+private lemma rotationMatrix'_mul_reflectionMatrix' (θ₁ θ₂ : ℝ) :
+    rotationMatrix' θ₁ * reflectionMatrix' θ₂ = reflectionMatrix' (θ₁ + θ₂) := by
+  apply Subtype.ext
+  simp only [rotationMatrix', reflectionMatrix', Submonoid.coe_mul]
+  exact rotationMatrix_mul_reflectionMatrix θ₁ θ₂
+
+private lemma reflectionMatrix'_mul_rotationMatrix' (θ₁ θ₂ : ℝ) :
+    reflectionMatrix' θ₁ * rotationMatrix' θ₂ = reflectionMatrix' (θ₁ - θ₂) := by
+  apply Subtype.ext
+  simp only [rotationMatrix', reflectionMatrix', Submonoid.coe_mul]
+  exact reflectionMatrix_mul_rotationMatrix θ₁ θ₂
+
+private lemma reflectionMatrix'_mul (θ₁ θ₂ : ℝ) :
+    reflectionMatrix' θ₁ * reflectionMatrix' θ₂ = rotationMatrix' (θ₁ - θ₂) := by
+  apply Subtype.ext
+  simp only [rotationMatrix', reflectionMatrix', Submonoid.coe_mul]
+  exact reflectionMatrix_mul θ₁ θ₂
+
+/-- Map from DihedralGroup n to O(2) matrices.
+    - r i maps to R_{angleOf n i}
+    - sr i maps to S_{reflAngleOf n i} = S_{-angleOf n i} -/
+noncomputable def dihedralToO2 (n : ℕ) [NeZero n] : DihedralGroup n → OrthogonalGroup2
+  | DihedralGroup.r i => rotationMatrix' (angleOf n i)
+  | DihedralGroup.sr i => reflectionMatrix' (reflAngleOf n i)
+
+-- The key multiplication lemmas showing dihedralToO2 respects the group operation
+private lemma rotationMatrix'_angleOf_add_mod (n : ℕ) [NeZero n] (i j : ZMod n) :
+    rotationMatrix' (angleOf n i + angleOf n j) = rotationMatrix' (angleOf n (i + j)) := by
+  simp only [angleOf]
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  have hi : i.val < n := ZMod.val_lt i
+  have hj : j.val < n := ZMod.val_lt j
+  by_cases h : i.val + j.val < n
+  · have hval : (i + j).val = i.val + j.val := ZMod.val_add_of_lt h
+    rw [hval]; congr 1; push_cast; ring
+  · push_neg at h
+    have hsum : i.val + j.val < 2 * n := by omega
+    have hval : (i + j).val = i.val + j.val - n := by
+      have := ZMod.val_add i j
+      rw [Nat.mod_eq_sub_mod h] at this
+      have h2 : i.val + j.val - n < n := by omega
+      rw [Nat.mod_eq_of_lt h2] at this
+      exact this
+    rw [hval]
+    have hcast : ((i.val + j.val - n : ℕ) : ℝ) = (i.val : ℝ) + (j.val : ℝ) - (n : ℝ) := by
+      rw [Nat.cast_sub h]; push_cast; ring
+    rw [hcast]
+    have h1 : ((i.val : ℝ) + (j.val : ℝ) - (n : ℝ)) * (2 * Real.pi / n) =
+              ((i.val : ℝ) + (j.val : ℝ)) * (2 * Real.pi / n) - 2 * Real.pi := by
+      field_simp
+    have h2 : (i.val : ℝ) * (2 * Real.pi / n) + (j.val : ℝ) * (2 * Real.pi / n) =
+              ((i.val : ℝ) + (j.val : ℝ)) * (2 * Real.pi / n) := by ring
+    rw [h2, h1]
+    apply Subtype.ext; simp only [rotationMatrix']
+    ext a b; simp only [rotationMatrix, Matrix.of_apply]
+    fin_cases a <;> fin_cases b <;>
+      simp [Real.sin_sub_two_pi, Real.cos_sub_two_pi]
+
+-- For r i * sr j = sr (j - i):
+-- R_{angleOf i} * S_{reflAngleOf j} = S_{angleOf i + reflAngleOf j}
+-- Need: angleOf i + reflAngleOf j ≡ reflAngleOf (j - i) (mod 2π)
+private lemma reflectionMatrix'_angleOf_r_mul_sr (n : ℕ) [NeZero n] (i j : ZMod n) :
+    reflectionMatrix' (angleOf n i + reflAngleOf n j) =
+    reflectionMatrix' (reflAngleOf n (j - i)) := by
+  simp only [angleOf, reflAngleOf]
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  -- LHS = i.val * (2π/n) + (-j.val) * (2π/n) = (i.val - j.val) * (2π/n)
+  -- RHS = -(j - i).val * (2π/n)
+  by_cases h : i.val ≤ j.val
+  · -- No wrap: (j - i).val = j.val - i.val
+    have hval : (j - i).val = j.val - i.val := ZMod.val_sub h
+    rw [hval]
+    have hcast : ((j.val - i.val : ℕ) : ℝ) = (j.val : ℝ) - (i.val : ℝ) := by
+      rw [Nat.cast_sub h]
+    rw [hcast]
+    congr 1; ring
+  · -- Wrap: (j - i).val = j.val + n - i.val
+    push_neg at h
+    have hj : j.val < n := ZMod.val_lt j
+    have hi : i.val < n := ZMod.val_lt i
+    -- Since j.val < i.val and j.val + n ≥ i.val, we have (j - i).val = (j.val + n - i.val)
+    have hle : i.val ≤ j.val + n := by omega
+    have hval : (j - i).val = j.val + n - i.val := by
+      have hsum_lt : j.val + n - i.val < n := by omega
+      -- (j - i) = j + (-i) and -i has val n - i.val when i ≠ 0
+      rw [sub_eq_add_neg]
+      have hival : (-i).val = if i = 0 then 0 else n - i.val := ZMod.neg_val i
+      rw [ZMod.val_add, hival]
+      split_ifs with hi0
+      · -- i = 0, contradicts h : j.val < i.val since i.val = 0
+        simp only [hi0, ZMod.val_zero] at h
+        omega
+      · -- i ≠ 0
+        have hi_le : i.val ≤ n := le_of_lt hi
+        rw [← Nat.add_sub_assoc hi_le]
+        exact Nat.mod_eq_of_lt hsum_lt
+    rw [hval]
+    have hcast : ((j.val + n - i.val : ℕ) : ℝ) = (j.val : ℝ) + (n : ℝ) - (i.val : ℝ) := by
+      rw [Nat.cast_sub hle]; push_cast; ring
+    rw [hcast]
+    -- LHS = (i.val - j.val) * (2π/n)
+    -- RHS = -(j.val + n - i.val) * (2π/n) = (i.val - j.val - n) * (2π/n) = (i.val - j.val) * (2π/n) - 2π
+    have h1 : -((j.val : ℝ) + (n : ℝ) - (i.val : ℝ)) * (2 * Real.pi / n) =
+              ((i.val : ℝ) - (j.val : ℝ)) * (2 * Real.pi / n) - 2 * Real.pi := by
+      field_simp; ring
+    rw [h1]
+    have h2 : (i.val : ℝ) * (2 * Real.pi / n) + -((j.val : ℝ)) * (2 * Real.pi / n) =
+              ((i.val : ℝ) - (j.val : ℝ)) * (2 * Real.pi / n) := by ring
+    rw [h2]
+    exact (reflectionMatrix'_sub_two_pi _).symm
+
+-- For sr i * r j = sr (i + j):
+-- S_{reflAngleOf i} * R_{angleOf j} = S_{reflAngleOf i - angleOf j}
+-- Need: reflAngleOf i - angleOf j ≡ reflAngleOf (i + j) (mod 2π)
+private lemma reflectionMatrix'_angleOf_sr_mul_r (n : ℕ) [NeZero n] (i j : ZMod n) :
+    reflectionMatrix' (reflAngleOf n i - angleOf n j) =
+    reflectionMatrix' (reflAngleOf n (i + j)) := by
+  simp only [angleOf, reflAngleOf]
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  -- LHS = -i.val * (2π/n) - j.val * (2π/n) = -(i.val + j.val) * (2π/n)
+  -- RHS = -(i + j).val * (2π/n)
+  by_cases h : i.val + j.val < n
+  · have hval : (i + j).val = i.val + j.val := ZMod.val_add_of_lt h
+    rw [hval]; congr 1; push_cast; ring
+  · push_neg at h
+    have hi : i.val < n := ZMod.val_lt i
+    have hj : j.val < n := ZMod.val_lt j
+    have hsum : i.val + j.val < 2 * n := by omega
+    have hval : (i + j).val = i.val + j.val - n := by
+      have := ZMod.val_add i j
+      rw [Nat.mod_eq_sub_mod h] at this
+      have h2 : i.val + j.val - n < n := by omega
+      rw [Nat.mod_eq_of_lt h2] at this
+      exact this
+    rw [hval]
+    have hcast : ((i.val + j.val - n : ℕ) : ℝ) = (i.val : ℝ) + (j.val : ℝ) - (n : ℝ) := by
+      rw [Nat.cast_sub h]; push_cast; ring
+    rw [hcast]
+    -- LHS = -(i.val + j.val) * (2π/n)
+    -- RHS = -(i.val + j.val - n) * (2π/n) = -(i.val + j.val) * (2π/n) + 2π
+    have h1 : -((i.val : ℝ) + (j.val : ℝ) - (n : ℝ)) * (2 * Real.pi / n) =
+              -((i.val : ℝ) + (j.val : ℝ)) * (2 * Real.pi / n) + 2 * Real.pi := by
+      field_simp; ring
+    rw [h1]
+    have h2 : -((i.val : ℝ)) * (2 * Real.pi / n) - (j.val : ℝ) * (2 * Real.pi / n) =
+              -((i.val : ℝ) + (j.val : ℝ)) * (2 * Real.pi / n) := by ring
+    rw [h2]
+    exact (reflectionMatrix'_add_two_pi _).symm
+
+-- For sr i * sr j = r (j - i):
+-- S_{reflAngleOf i} * S_{reflAngleOf j} = R_{reflAngleOf i - reflAngleOf j}
+-- Need: reflAngleOf i - reflAngleOf j ≡ angleOf (j - i) (mod 2π)
+private lemma rotationMatrix'_angleOf_sr_mul_sr (n : ℕ) [NeZero n] (i j : ZMod n) :
+    rotationMatrix' (reflAngleOf n i - reflAngleOf n j) =
+    rotationMatrix' (angleOf n (j - i)) := by
+  simp only [angleOf, reflAngleOf]
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  -- LHS = (-i.val - (-j.val)) * (2π/n) = (j.val - i.val) * (2π/n)
+  -- RHS = (j - i).val * (2π/n)
+  by_cases h : i.val ≤ j.val
+  · have hval : (j - i).val = j.val - i.val := ZMod.val_sub h
+    rw [hval]
+    have hcast : ((j.val - i.val : ℕ) : ℝ) = (j.val : ℝ) - (i.val : ℝ) := by
+      rw [Nat.cast_sub h]
+    rw [hcast]
+    congr 1; ring
+  · push_neg at h
+    have hj : j.val < n := ZMod.val_lt j
+    have hi : i.val < n := ZMod.val_lt i
+    have hle : i.val ≤ j.val + n := by omega
+    have hval : (j - i).val = j.val + n - i.val := by
+      have hsum_lt : j.val + n - i.val < n := by omega
+      rw [sub_eq_add_neg]
+      have hival : (-i).val = if i = 0 then 0 else n - i.val := ZMod.neg_val i
+      rw [ZMod.val_add, hival]
+      split_ifs with hi0
+      · simp only [hi0, ZMod.val_zero] at h
+        omega
+      · have hi_le : i.val ≤ n := le_of_lt hi
+        rw [← Nat.add_sub_assoc hi_le]
+        exact Nat.mod_eq_of_lt hsum_lt
+    rw [hval]
+    have hcast : ((j.val + n - i.val : ℕ) : ℝ) = (j.val : ℝ) + (n : ℝ) - (i.val : ℝ) := by
+      rw [Nat.cast_sub hle]; push_cast; ring
+    rw [hcast]
+    -- LHS = (j.val - i.val) * (2π/n)
+    -- RHS = (j.val + n - i.val) * (2π/n) = (j.val - i.val) * (2π/n) + 2π
+    have h1 : ((j.val : ℝ) + (n : ℝ) - (i.val : ℝ)) * (2 * Real.pi / n) =
+              ((j.val : ℝ) - (i.val : ℝ)) * (2 * Real.pi / n) + 2 * Real.pi := by
+      field_simp; ring
+    rw [h1]
+    have h2 : -((i.val : ℝ)) * (2 * Real.pi / n) - -((j.val : ℝ)) * (2 * Real.pi / n) =
+              ((j.val : ℝ) - (i.val : ℝ)) * (2 * Real.pi / n) := by ring
+    rw [h2]
+    exact (rotationMatrix'_add_two_pi _).symm
+
+/-- The map dihedralToO2 is a group homomorphism. -/
+noncomputable def dihedralToO2Hom (n : ℕ) [NeZero n] : DihedralGroup n →* OrthogonalGroup2 where
+  toFun := dihedralToO2 n
+  map_one' := by
+    simp only [DihedralGroup.one_def, dihedralToO2, angleOf]
+    simp only [ZMod.val_zero, CharP.cast_eq_zero, zero_mul]
+    apply Subtype.ext
+    simp only [rotationMatrix', Submonoid.coe_one]
+    exact rotationMatrix_zero
+  map_mul' := fun x y => by
+    cases x with
+    | r i =>
+      cases y with
+      | r j =>
+        simp only [DihedralGroup.r_mul_r, dihedralToO2]
+        rw [rotationMatrix'_add, rotationMatrix'_angleOf_add_mod]
+      | sr j =>
+        simp only [DihedralGroup.r_mul_sr, dihedralToO2]
+        rw [rotationMatrix'_mul_reflectionMatrix']
+        exact (reflectionMatrix'_angleOf_r_mul_sr n i j).symm
+    | sr i =>
+      cases y with
+      | r j =>
+        simp only [DihedralGroup.sr_mul_r, dihedralToO2]
+        rw [reflectionMatrix'_mul_rotationMatrix']
+        exact (reflectionMatrix'_angleOf_sr_mul_r n i j).symm
+      | sr j =>
+        simp only [DihedralGroup.sr_mul_sr, dihedralToO2]
+        rw [reflectionMatrix'_mul]
+        exact (rotationMatrix'_angleOf_sr_mul_sr n i j).symm
+
+-- =============================================================================
+-- Injectivity of dihedralToO2
+-- =============================================================================
+
+/-- The angleOf function is injective on ZMod n. -/
+private lemma angleOf_injective (n : ℕ) [NeZero n] {i j : ZMod n}
+    (h : angleOf n i = angleOf n j) : i = j := by
+  simp only [angleOf] at h
+  have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+  have hpi : (2 * Real.pi / n : ℝ) ≠ 0 := by positivity
+  have h' : (i.val : ℝ) = (j.val : ℝ) := mul_right_cancel₀ hpi h
+  have hnat : i.val = j.val := by exact_mod_cast h'
+  exact ZMod.val_injective n hnat
+
+/-- dihedralToO2 is injective. -/
+lemma dihedralToO2_injective (n : ℕ) [NeZero n] : Function.Injective (dihedralToO2 n) := by
+  intro x y hxy
+  cases x with
+  | r i =>
+    cases y with
+    | r j =>
+      simp only [dihedralToO2] at hxy
+      have h := congrArg (·.1) hxy
+      simp only [rotationMatrix'] at h
+      have h00 : rotationMatrix (angleOf n i) 0 0 = rotationMatrix (angleOf n j) 0 0 := by rw [h]
+      have h10 : rotationMatrix (angleOf n i) 1 0 = rotationMatrix (angleOf n j) 1 0 := by rw [h]
+      simp only [rotationMatrix, Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
+        Matrix.head_cons] at h00 h10
+      have hangle : (angleOf n i : Real.Angle) = (angleOf n j : Real.Angle) :=
+        Real.Angle.cos_sin_inj h00 h10
+      -- Both angles are in [0, 2π), so equality of Angles implies equality of Reals
+      have hi_bound : 0 ≤ angleOf n i ∧ angleOf n i < 2 * Real.pi := by
+        simp only [angleOf]
+        have hi : i.val < n := ZMod.val_lt i
+        have hn_pos : (0 : ℝ) < n := by exact_mod_cast NeZero.pos n
+        constructor
+        · positivity
+        · have h1 : (i.val : ℝ) * (2 * Real.pi / n) < (n : ℝ) * (2 * Real.pi / n) := by
+            apply mul_lt_mul_of_pos_right; exact_mod_cast hi; positivity
+          have h2 : (n : ℝ) * (2 * Real.pi / n) = 2 * Real.pi := by field_simp
+          linarith
+      have hj_bound : 0 ≤ angleOf n j ∧ angleOf n j < 2 * Real.pi := by
+        simp only [angleOf]
+        have hj : j.val < n := ZMod.val_lt j
+        have hn_pos : (0 : ℝ) < n := by exact_mod_cast NeZero.pos n
+        constructor
+        · positivity
+        · have h1 : (j.val : ℝ) * (2 * Real.pi / n) < (n : ℝ) * (2 * Real.pi / n) := by
+            apply mul_lt_mul_of_pos_right; exact_mod_cast hj; positivity
+          have h2 : (n : ℝ) * (2 * Real.pi / n) = 2 * Real.pi := by field_simp
+          linarith
+      have heq : angleOf n i = angleOf n j := by
+        rw [Real.Angle.angle_eq_iff_two_pi_dvd_sub] at hangle
+        obtain ⟨k, hk⟩ := hangle
+        have hdiff : |angleOf n i - angleOf n j| < 2 * Real.pi := by
+          rw [abs_lt]; constructor <;> linarith [hi_bound.1, hi_bound.2, hj_bound.1, hj_bound.2]
+        rw [hk, abs_mul, abs_of_pos (by linarith [Real.pi_pos] : (2 : ℝ) * Real.pi > 0)] at hdiff
+        have hk_zero : k = 0 := by
+          by_contra hk_ne
+          have : |(k : ℝ)| ≥ 1 := by
+            rcases (ne_iff_lt_or_gt.mp hk_ne) with hk_neg | hk_pos
+            · have : (k : ℝ) ≤ -1 := by exact_mod_cast Int.le_sub_one_iff.mpr hk_neg
+              rw [abs_of_neg (by linarith : (k : ℝ) < 0)]; linarith
+            · have : (k : ℝ) ≥ 1 := by exact_mod_cast Int.add_one_le_iff.mpr hk_pos
+              rw [abs_of_pos (by linarith : (k : ℝ) > 0)]; linarith
+          have : |(k : ℝ)| * (2 * Real.pi) ≥ 1 * (2 * Real.pi) := by
+            apply mul_le_mul_of_nonneg_right this; linarith [Real.pi_pos]
+          linarith
+        rw [hk_zero] at hk; simp at hk; linarith
+      congr 1; exact angleOf_injective n heq
+    | sr j =>
+      simp only [dihedralToO2] at hxy
+      have hdet_rot : (rotationMatrix' (angleOf n i)).1.det = 1 := rotationMatrix_det _
+      have hdet_refl : (reflectionMatrix' (reflAngleOf n j)).1.det = -1 := reflectionMatrix_det _
+      rw [hxy] at hdet_rot; rw [hdet_refl] at hdet_rot; norm_num at hdet_rot
+  | sr i =>
+    cases y with
+    | r j =>
+      simp only [dihedralToO2] at hxy
+      have hdet_rot : (rotationMatrix' (angleOf n j)).1.det = 1 := rotationMatrix_det _
+      have hdet_refl : (reflectionMatrix' (reflAngleOf n i)).1.det = -1 := reflectionMatrix_det _
+      rw [← hxy] at hdet_rot; rw [hdet_refl] at hdet_rot; norm_num at hdet_rot
+    | sr j =>
+      simp only [dihedralToO2] at hxy
+      have h := congrArg (·.1) hxy
+      simp only [reflectionMatrix'] at h
+      have h00 : reflectionMatrix (reflAngleOf n i) 0 0 =
+                 reflectionMatrix (reflAngleOf n j) 0 0 := by rw [h]
+      have h10 : reflectionMatrix (reflAngleOf n i) 1 0 =
+                 reflectionMatrix (reflAngleOf n j) 1 0 := by rw [h]
+      simp only [reflectionMatrix, Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
+        Matrix.head_cons] at h00 h10
+      have hangle : (reflAngleOf n i : Real.Angle) = (reflAngleOf n j : Real.Angle) :=
+        Real.Angle.cos_sin_inj h00 h10
+      -- reflAngleOf values are in (-2π, 0], so equality of Angles implies equality of Reals
+      have hi_bound : -2 * Real.pi < reflAngleOf n i ∧ reflAngleOf n i ≤ 0 := by
+        simp only [reflAngleOf]
+        have hi : i.val < n := ZMod.val_lt i
+        have hn_pos : (0 : ℝ) < n := by exact_mod_cast NeZero.pos n
+        constructor
+        · have h1 : (i.val : ℝ) * (2 * Real.pi / n) < (n : ℝ) * (2 * Real.pi / n) := by
+            apply mul_lt_mul_of_pos_right; exact_mod_cast hi; positivity
+          have h2 : (n : ℝ) * (2 * Real.pi / n) = 2 * Real.pi := by field_simp
+          linarith
+        · have hpos : 2 * Real.pi / n > 0 := by positivity
+          have hneg : -(i.val : ℝ) ≤ 0 := neg_nonpos.mpr (Nat.cast_nonneg i.val)
+          nlinarith
+      have hj_bound : -2 * Real.pi < reflAngleOf n j ∧ reflAngleOf n j ≤ 0 := by
+        simp only [reflAngleOf]
+        have hj : j.val < n := ZMod.val_lt j
+        have hn_pos : (0 : ℝ) < n := by exact_mod_cast NeZero.pos n
+        constructor
+        · have h1 : (j.val : ℝ) * (2 * Real.pi / n) < (n : ℝ) * (2 * Real.pi / n) := by
+            apply mul_lt_mul_of_pos_right; exact_mod_cast hj; positivity
+          have h2 : (n : ℝ) * (2 * Real.pi / n) = 2 * Real.pi := by field_simp
+          linarith
+        · have hpos : 2 * Real.pi / n > 0 := by positivity
+          have hneg : -(j.val : ℝ) ≤ 0 := neg_nonpos.mpr (Nat.cast_nonneg j.val)
+          nlinarith
+      have heq : reflAngleOf n i = reflAngleOf n j := by
+        rw [Real.Angle.angle_eq_iff_two_pi_dvd_sub] at hangle
+        obtain ⟨k, hk⟩ := hangle
+        have hdiff : |reflAngleOf n i - reflAngleOf n j| < 2 * Real.pi := by
+          rw [abs_lt]; constructor <;> linarith [hi_bound.1, hi_bound.2, hj_bound.1, hj_bound.2]
+        rw [hk, abs_mul, abs_of_pos (by linarith [Real.pi_pos] : (2 : ℝ) * Real.pi > 0)] at hdiff
+        have hk_zero : k = 0 := by
+          by_contra hk_ne
+          have : |(k : ℝ)| ≥ 1 := by
+            rcases (ne_iff_lt_or_gt.mp hk_ne) with hk_neg | hk_pos
+            · have : (k : ℝ) ≤ -1 := by exact_mod_cast Int.le_sub_one_iff.mpr hk_neg
+              rw [abs_of_neg (by linarith : (k : ℝ) < 0)]; linarith
+            · have : (k : ℝ) ≥ 1 := by exact_mod_cast Int.add_one_le_iff.mpr hk_pos
+              rw [abs_of_pos (by linarith : (k : ℝ) > 0)]; linarith
+          have : |(k : ℝ)| * (2 * Real.pi) ≥ 1 * (2 * Real.pi) := by
+            apply mul_le_mul_of_nonneg_right this; linarith [Real.pi_pos]
+          linarith
+        rw [hk_zero] at hk; simp at hk; linarith
+      -- From reflAngleOf n i = reflAngleOf n j, deduce i = j
+      simp only [reflAngleOf] at heq
+      have hpi : (2 * Real.pi / n : ℝ) ≠ 0 := by
+        have hn : (n : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne n
+        positivity
+      have h' : (i.val : ℝ) = (j.val : ℝ) := by
+        have h2 : -((i.val : ℝ)) * (2 * Real.pi / n) = -((j.val : ℝ)) * (2 * Real.pi / n) := heq
+        have h3 : (i.val : ℝ) * (2 * Real.pi / n) = (j.val : ℝ) * (2 * Real.pi / n) := by linarith
+        exact mul_right_cancel₀ hpi h3
+      have hnat : i.val = j.val := by exact_mod_cast h'
+      congr 1; exact ZMod.val_injective n hnat
+
+-- =============================================================================
+-- Image of dihedralToO2 is DihedralPointGroup
+-- =============================================================================
+
+/-- The image of dihedralToO2Hom is exactly DihedralPointGroup n. -/
+lemma dihedralToO2Hom_range_eq_dihedralPointGroup (n : ℕ) [NeZero n] :
+    (dihedralToO2Hom n).range = DihedralPointGroup n := by
+  -- DihedralPointGroup n is generated by {R_{2π/n}, S_0}
+  -- The image contains R_{2π/n} = dihedralToO2 (r 1) and S_0 = dihedralToO2 (sr 0)
+  ext x
+  constructor
+  · -- x ∈ range → x ∈ DihedralPointGroup n
+    intro ⟨g, hg⟩
+    rw [← hg]
+    cases g with
+    | r i =>
+      simp only [dihedralToO2Hom, MonoidHom.coe_mk, OneHom.coe_mk, dihedralToO2]
+      -- rotationMatrix' (angleOf n i) = rotationMatrix' (i.val * (2π/n))
+      -- This is (R_{2π/n})^i.val which is in DihedralPointGroup n
+      have hgen : rotationMatrix' (2 * Real.pi / n) ∈ DihedralPointGroup n :=
+        Subgroup.subset_closure (Set.mem_insert _ _)
+      have hpow : rotationMatrix' (angleOf n i) = (rotationMatrix' (2 * Real.pi / n)) ^ i.val := by
+        rw [rotationMatrix'_pow]
+        simp only [angleOf]
+      rw [hpow]
+      exact Subgroup.pow_mem _ hgen i.val
+    | sr i =>
+      simp only [dihedralToO2Hom, MonoidHom.coe_mk, OneHom.coe_mk, dihedralToO2]
+      -- reflectionMatrix' (reflAngleOf n i) = S_0 * R_{-i*2π/n} = S_0 * (R_{2π/n})^(-i)
+      have hgenR : rotationMatrix' (2 * Real.pi / n) ∈ DihedralPointGroup n :=
+        Subgroup.subset_closure (Set.mem_insert _ _)
+      have hgenS : reflectionMatrix' 0 ∈ DihedralPointGroup n :=
+        Subgroup.subset_closure (Set.mem_insert_of_mem _ (Set.mem_singleton _))
+      -- reflAngleOf n i = -i.val * (2π/n)
+      -- S_{-θ} = S_0 * R_θ by reflectionMatrix'_mul_rotationMatrix'
+      have h1 : reflectionMatrix' (reflAngleOf n i) =
+                reflectionMatrix' 0 * rotationMatrix' (angleOf n i) := by
+        rw [reflectionMatrix'_mul_rotationMatrix']
+        simp only [reflAngleOf, angleOf]
+        congr 1; ring
+      rw [h1]
+      have hpow : rotationMatrix' (angleOf n i) = (rotationMatrix' (2 * Real.pi / n)) ^ i.val := by
+        rw [rotationMatrix'_pow]
+        simp only [angleOf]
+      rw [hpow]
+      exact Subgroup.mul_mem _ hgenS (Subgroup.pow_mem _ hgenR i.val)
+  · -- x ∈ DihedralPointGroup n → x ∈ range
+    intro hx
+    -- Use Subgroup.closure_le: closure k ≤ K ↔ k ⊆ K
+    -- We show {R_{2π/n}, S_0} ⊆ range, which implies closure ⊆ range
+    have hgen_sub_range :
+        ({rotationMatrix' (2 * Real.pi / n), reflectionMatrix' 0} : Set OrthogonalGroup2) ⊆
+        (dihedralToO2Hom n).range := by
+      intro g hg
+      cases hg with
+      | inl hrot =>
+        rw [hrot]
+        -- R_{2π/n} = dihedralToO2 (r 1)
+        use DihedralGroup.r 1
+        simp only [dihedralToO2Hom, MonoidHom.coe_mk, OneHom.coe_mk, dihedralToO2, angleOf]
+        -- Show rotationMatrix' (val 1 * 2π/n) = rotationMatrix' (2π/n)
+        -- When n = 1: val 1 = 0 (since ZMod 1 = {0}), and 2π/1 = 2π
+        --   LHS = rotationMatrix' 0 = 1 = rotationMatrix' (2π) = RHS
+        -- When n > 1: val 1 = 1, so both sides are equal
+        by_cases hn1 : n = 1
+        · -- n = 1 case
+          subst hn1
+          simp only [Nat.cast_one, div_one]
+          have hval : (1 : ZMod 1).val = 0 := rfl
+          simp only [hval, CharP.cast_eq_zero, zero_mul, rotationMatrix'_zero,
+            rotationMatrix'_two_pi]
+        · -- n > 1 case
+          have hn0 : n ≠ 0 := NeZero.ne n
+          have hlt : 1 < n := by omega
+          haveI : Fact (1 < n) := ⟨hlt⟩
+          simp only [ZMod.val_one n, Nat.cast_one, one_mul]
+      | inr hrefl =>
+        rw [Set.mem_singleton_iff] at hrefl
+        rw [hrefl]
+        -- S_0 = dihedralToO2 (sr 0)
+        use DihedralGroup.sr 0
+        simp only [dihedralToO2Hom, MonoidHom.coe_mk, OneHom.coe_mk, dihedralToO2, reflAngleOf]
+        congr 1
+        simp only [ZMod.val_zero, CharP.cast_eq_zero, neg_zero, zero_mul]
+    rw [DihedralPointGroup] at hx
+    exact (Subgroup.closure_le _).mpr hgen_sub_range hx
+
+/-- Dₙ ⊂ O(2) is isomorphic to Mathlib's DihedralGroup n.
+
+blueprint: lem:dihedral_embedding -/
+lemma DihedralPointGroup.equivDihedralGroup (n : ℕ) [NeZero n] :
+    Nonempty ((DihedralPointGroup n : Subgroup OrthogonalGroup2) ≃* DihedralGroup n) := by
+  -- dihedralToO2Hom : DihedralGroup n →* OrthogonalGroup2 is injective
+  -- with range = DihedralPointGroup n
+  -- So we get DihedralGroup n ≃* range = DihedralPointGroup n
+  have hinj := dihedralToO2_injective n
+  have hrange := dihedralToO2Hom_range_eq_dihedralPointGroup n
+  -- MonoidHom.ofInjective gives us DihedralGroup n ≃* (dihedralToO2Hom n).range
+  let e1 : DihedralGroup n ≃* (dihedralToO2Hom n).range := MonoidHom.ofInjective hinj
+  -- The range equals DihedralPointGroup n
+  let e2 : (dihedralToO2Hom n).range ≃* (DihedralPointGroup n : Subgroup OrthogonalGroup2) :=
+    MulEquiv.subgroupCongr hrange
+  -- Compose and take the inverse
+  exact ⟨(e1.trans e2).symm⟩
+
+/-- D₂ is the Klein four-group.
+
+blueprint: lem:D2_klein -/
+lemma DihedralPointGroup.two_isKleinFour :
+    Nonempty ((DihedralPointGroup 2 : Subgroup OrthogonalGroup2) ≃*
+              Multiplicative (ZMod 2 × ZMod 2)) := by
+  -- D₂ has 4 elements: {I, R_π, S_0, S_π}
+  -- This is isomorphic to Z₂ × Z₂ (Klein four-group)
+  -- DihedralGroup 2 is already shown to be IsKleinFour in Mathlib
+  -- Use the chain: DihedralPointGroup 2 ≃* DihedralGroup 2 ≃* Z₂ × Z₂
+  obtain ⟨e1⟩ := DihedralPointGroup.equivDihedralGroup 2
+  -- e1 : DihedralPointGroup 2 ≃* DihedralGroup 2
+  have h1 : IsKleinFour (DihedralGroup 2) := inferInstance
+  have h2 : IsKleinFour (Multiplicative (ZMod 2 × ZMod 2)) := inferInstance
+  obtain ⟨e2⟩ := @IsKleinFour.nonempty_mulEquiv (DihedralGroup 2) _ _ _ h1 h2
+  -- e2 : DihedralGroup 2 ≃* Multiplicative (ZMod 2 × ZMod 2)
+  exact ⟨e1.trans e2⟩
 
 /-- The order of Dₙ is 2n.
 
 blueprint: lem:dihedral_order -/
 lemma DihedralPointGroup.card (n : ℕ) [NeZero n] :
     Nat.card (DihedralPointGroup n) = 2 * n := by
-  sorry
-
-/-- Cₙ is a subgroup of Dₙ of index 2. -/
-lemma CyclicPointGroup.le_dihedral (n : ℕ) [NeZero n] :
-    CyclicPointGroup n ≤ DihedralPointGroup n := by
-  sorry
+  -- Use the isomorphism with DihedralGroup n
+  have h := DihedralPointGroup.equivDihedralGroup n
+  obtain ⟨e⟩ := h
+  rw [Nat.card_congr e.toEquiv, DihedralGroup.nat_card]
 
 /-- Cₙ is normal in Dₙ. -/
 lemma CyclicPointGroup.normal_in_dihedral (n : ℕ) [NeZero n] :
     (CyclicPointGroup n).subgroupOf (DihedralPointGroup n) |>.Normal := by
-  sorry
+  -- A subgroup of index 2 is always normal
+  -- |Dₙ| = 2n, |Cₙ| = n, so index = 2
+  apply Subgroup.normal_of_index_eq_two
+  -- Need: (CyclicPointGroup n).subgroupOf (DihedralPointGroup n)).index = 2
+  have hle : CyclicPointGroup n ≤ DihedralPointGroup n := CyclicPointGroup.le_dihedral n
+  have hcard_eq : Nat.card ((CyclicPointGroup n).subgroupOf (DihedralPointGroup n)) =
+                  Nat.card (CyclicPointGroup n) :=
+    Nat.card_congr (Subgroup.subgroupOfEquivOfLe hle).toEquiv
+  have hcard_C : Nat.card (CyclicPointGroup n) = n := CyclicPointGroup.card n
+  have hcard_D : Nat.card (DihedralPointGroup n) = 2 * n := DihedralPointGroup.card n
+  have hcard_ne : Nat.card (CyclicPointGroup n) ≠ 0 := by rw [hcard_C]; exact NeZero.ne n
+  have h := Subgroup.index_mul_card ((CyclicPointGroup n).subgroupOf (DihedralPointGroup n))
+  rw [hcard_eq, hcard_D] at h
+  have hn_pos : 0 < n := NeZero.pos n
+  have key : ((CyclicPointGroup n).subgroupOf (DihedralPointGroup n)).index * Nat.card (CyclicPointGroup n) = 2 * n := h
+  rw [hcard_C] at key
+  exact Nat.eq_of_mul_eq_mul_right hn_pos key
 
 /-- Dₙ is a semidirect product Cₙ ⋊ C₂.
 
@@ -106,17 +885,44 @@ lemma DihedralPointGroup.semidirectProduct (n : ℕ) [NeZero n] :
         Multiplicative (ZMod n) ⋊[φ] Multiplicative (ZMod 2)) := by
   sorry
 
-/-- Dₙ ⊂ O(2) is isomorphic to Mathlib's DihedralGroup n.
-
-blueprint: lem:dihedral_embedding -/
-lemma DihedralPointGroup.equivDihedralGroup (n : ℕ) [NeZero n] :
-    Nonempty ((DihedralPointGroup n : Subgroup OrthogonalGroup2) ≃* DihedralGroup n) := by
-  sorry
-
 /-- Cₙ consists of all elements of Dₙ with determinant 1. -/
 lemma CyclicPointGroup.eq_dihedral_inter_SO2 (n : ℕ) [NeZero n] :
     (CyclicPointGroup n : Set OrthogonalGroup2) =
     (DihedralPointGroup n : Set OrthogonalGroup2) ∩ SpecialOrthogonalGroup2 := by
-  sorry
+  ext x
+  constructor
+  · intro hx
+    constructor
+    · exact CyclicPointGroup.le_dihedral n hx
+    · exact CyclicPointGroup.subset_SO2 n hx
+  · intro ⟨hD, hSO⟩
+    -- x ∈ Dₙ ∩ SO(2), need to show x ∈ Cₙ
+    -- Use the isomorphism: x corresponds to some element of DihedralGroup n
+    -- Elements with det = 1 correspond to rotations (r i), which map to CyclicPointGroup
+    -- Use the range characterization
+    rw [← dihedralToO2Hom_range_eq_dihedralPointGroup] at hD
+    obtain ⟨g, hg⟩ := hD
+    -- g is in DihedralGroup n, and dihedralToO2Hom n g = x
+    rw [← hg] at hSO ⊢
+    simp only [dihedralToO2Hom, MonoidHom.coe_mk, OneHom.coe_mk] at hSO ⊢
+    -- Case split on whether g is a rotation or reflection
+    cases g with
+    | r i =>
+      -- g = r i: this is a rotation, which is in CyclicPointGroup
+      simp only [dihedralToO2]
+      unfold CyclicPointGroup
+      have hpow : rotationMatrix' (angleOf n i) = (rotationMatrix' (2 * Real.pi / n)) ^ i.val := by
+        rw [rotationMatrix'_pow]
+        simp only [angleOf]
+      rw [hpow]
+      exact Subgroup.pow_mem _ (Subgroup.subset_closure (Set.mem_singleton _)) i.val
+    | sr i =>
+      -- g = sr i: this is a reflection, which has det = -1
+      -- This contradicts hSO which says det = 1
+      simp only [dihedralToO2] at hSO
+      simp only [SpecialOrthogonalGroup2, Subgroup.mem_mk, Set.mem_setOf_eq] at hSO
+      have hdet : (reflectionMatrix' (reflAngleOf n i)).1.det = -1 := reflectionMatrix'_det _
+      rw [hSO] at hdet
+      norm_num at hdet
 
 end WallpaperGroups.PointGroup

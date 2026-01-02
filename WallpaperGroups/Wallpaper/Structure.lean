@@ -57,8 +57,13 @@ lemma WallpaperGroup.translationSubgroup_isLattice (Γ : Subgroup EuclideanGroup
 
 blueprint: lem:wallpaper_translation_normal -/
 lemma WallpaperGroup.translationSubgroup_normal (Γ : Subgroup EuclideanGroup2) :
-    (WallpaperGroup.translationSubgroup Γ).Normal := by
-  sorry
+    ((WallpaperGroup.translationSubgroup Γ).subgroupOf Γ).Normal := by
+  constructor
+  intro n hn g
+  simp only [Subgroup.mem_subgroupOf, WallpaperGroup.translationSubgroup, Subgroup.mem_inf] at hn ⊢
+  constructor
+  · exact Γ.mul_mem (Γ.mul_mem g.2 hn.1) (Γ.inv_mem g.2)
+  · exact Euclidean.translationSubgroup_normal.conj_mem n hn.2 g
 
 /-- The point group of a wallpaper group.
 
@@ -70,14 +75,35 @@ def WallpaperGroup.pointGroup (Γ : Subgroup EuclideanGroup2) : Subgroup Orthogo
   mul_mem' := by
     intro A B ⟨v, hv⟩ ⟨w, hw⟩
     use v + Matrix.toEuclideanLin A.1 w
-    sorry
+    have hmul : EuclideanGroup2.mk v A * EuclideanGroup2.mk w B =
+        EuclideanGroup2.mk (v + Matrix.toEuclideanLin A.1 w) (A * B) := by
+      ext
+      · simp only [SemidirectProduct.mul_left]; rfl
+      · simp only [SemidirectProduct.mul_right]; rfl
+    rw [← hmul]
+    exact Γ.mul_mem hv hw
   one_mem' := by
     use 0
-    sorry
+    have h : EuclideanGroup2.mk 0 1 = 1 := by
+      ext
+      · simp only [SemidirectProduct.one_left]; rfl
+      · simp only [SemidirectProduct.one_right]; rfl
+    rw [h]
+    exact Γ.one_mem
   inv_mem' := by
     intro A ⟨v, hv⟩
     use -(Matrix.toEuclideanLin A⁻¹.1 v)
-    sorry
+    have h_inv_mem : (EuclideanGroup2.mk v A)⁻¹ ∈ Γ := Γ.inv_mem hv
+    have h_eq : (EuclideanGroup2.mk v A)⁻¹ =
+        EuclideanGroup2.mk (-(Matrix.toEuclideanLin A⁻¹.1 v)) A⁻¹ := by
+      apply SemidirectProduct.ext
+      · simp only [EuclideanGroup2.mk]
+        have h := (EuclideanGroup2.inv_def (EuclideanGroup2.mk v A)).1
+        simp only [EuclideanGroup2.translation, EuclideanGroup2.mk] at h
+        simp only [h, ofAdd_toAdd]
+      · simp only [EuclideanGroup2.mk, SemidirectProduct.inv_right]
+    rw [← h_eq]
+    exact h_inv_mem
 
 /-- The point group is finite.
 
